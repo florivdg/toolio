@@ -11,9 +11,14 @@
     "db:migrate": "bun run scripts/migrate.ts"
   },
   "dependencies": {
+    "@astrojs/node": "^9.2.0",
+    "@astrojs/vue": "^5.0.10",
+    "@tailwindcss/vite": "^4.1.4",
     "astro": "^5.7.4",
     "better-auth": "^1.2.7",
-    "drizzle-orm": "^0.42.0"
+    "drizzle-orm": "^0.42.0",
+    "tailwindcss": "^4.1.4",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@types/bun": "^1.2.10",
