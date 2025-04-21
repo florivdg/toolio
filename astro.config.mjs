@@ -11,6 +11,8 @@ export default defineConfig({
     mode: 'standalone',
   }),
 
+  output: 'server',
+
   integrations: [vue()],
 
   vite: {
