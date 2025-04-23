@@ -1,0 +1,10 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import SignInVue from '@/components/auth/sign-in.vue'
+---
+
+<Layout>
+  <div class="flex h-screen w-full items-center justify-center px-4">
+    <SignInVue client:load />
+  </div>
+</Layout>
