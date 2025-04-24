@@ -74,13 +74,5 @@ async function handleSubmit() {
         <Button type="submit" class="w-full"> Sign in </Button>
       </form>
     </CardContent>
-    <CardFooter>
-      <p class="text-muted-foreground w-full text-center text-sm">
-        Don't have an account?
-        <a href="/sign-up" class="font-medium underline underline-offset-4">
-          Sign up
-        </a>
-      </p>
-    </CardFooter>
   </Card>
 </template>
