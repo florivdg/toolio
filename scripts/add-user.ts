@@ -32,7 +32,7 @@ async function main() {
     await db.insert(account).values({
       id: accountId,
       accountId: accountId,
-      providerId: 'credentials',
+      providerId: 'credential',
       userId: userId,
       accessToken: null,
       refreshToken: null,
