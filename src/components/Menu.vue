@@ -15,6 +15,9 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from '@/components/ui/menubar'
+import { useColorMode } from '@vueuse/core'
+
+const { store } = useColorMode()
 </script>
 
 <template>
@@ -58,10 +61,16 @@ import {
       <MenubarContent>
         <MenubarLabel inset> Dark Mode </MenubarLabel>
         <MenubarSeparator />
-        <MenubarRadioGroup model-value="system">
-          <MenubarRadioItem value="light"> Light </MenubarRadioItem>
-          <MenubarRadioItem value="dark"> Dark </MenubarRadioItem>
-          <MenubarRadioItem value="system"> System </MenubarRadioItem>
+        <MenubarRadioGroup v-model="store">
+          <MenubarRadioItem value="light" @click="store = 'light'">
+            Light
+          </MenubarRadioItem>
+          <MenubarRadioItem value="dark" @click="store = 'dark'">
+            Dark
+          </MenubarRadioItem>
+          <MenubarRadioItem value="auto" @click="store = 'auto'">
+            System
+          </MenubarRadioItem>
         </MenubarRadioGroup>
       </MenubarContent>
     </MenubarMenu>
