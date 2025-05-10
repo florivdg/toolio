@@ -1,4 +1,5 @@
 ---
+import { Font } from 'astro:assets'
 import '@/styles/global.css'
 ---
 
@@ -8,6 +9,7 @@ import '@/styles/global.css'
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <Font cssVariable="--font-geist-mono" preload />
     <meta name="generator" content={Astro.generator} />
     <title>toolio</title>
   </head>
