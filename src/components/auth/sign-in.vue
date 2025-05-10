@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, onMounted, ref } from 'vue'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +18,18 @@ const form = reactive({
   password: '',
 })
 
+// Store the redirect URL
+const redirectUrl = ref('/')
+
+// Extract redirect URL from query parameters on component mount
+onMounted(() => {
+  const urlParams = new URLSearchParams(window.location.search)
+  const redirect = urlParams.get('redirect')
+  if (redirect) {
+    redirectUrl.value = redirect
+  }
+})
+
 async function handleSubmit() {
   try {
     await signIn.email(
@@ -27,7 +39,8 @@ async function handleSubmit() {
       },
       {
         onSuccess: () => {
-          window.location.href = '/' // Redirect to the home page or dashboard
+          // Redirect to the stored redirect URL or home page as fallback
+          window.location.href = redirectUrl.value
         },
         onError: (error) => {
           console.error('Error:', error)
