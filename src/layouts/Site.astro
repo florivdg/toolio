@@ -1,8 +1,6 @@
 ---
 import { Font } from 'astro:assets'
 import '@/styles/global.css'
-
-import Menu from '@/components/Menu.vue'
 ---
 
 <script is:inline>
@@ -36,12 +34,9 @@ import Menu from '@/components/Menu.vue'
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <Font cssVariable="--font-geist-mono" preload />
     <meta name="generator" content={Astro.generator} />
-    <title>toolio</title>
+    <title>Toolio</title>
   </head>
   <body>
-    <Menu client:load />
-    <main class="p-4 lg:p-6">
-      <slot />
-    </main>
+    <slot />
   </body>
 </html>

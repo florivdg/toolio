@@ -16,8 +16,19 @@ import {
   MenubarTrigger,
 } from '@/components/ui/menubar'
 import { useColorMode } from '@vueuse/core'
+import { signOut } from '@/lib/auth-client'
 
 const { store } = useColorMode()
+
+async function handleSignOut() {
+  await signOut({
+    fetchOptions: {
+      onSuccess: () => {
+        window.location.href = '/sign-in' // redirect to login page
+      },
+    },
+  })
+}
 </script>
 
 <template>
@@ -79,7 +90,7 @@ const { store } = useColorMode()
       <MenubarContent>
         <MenubarItem> Account verwalten... </MenubarItem>
         <MenubarSeparator />
-        <MenubarItem> Abmelden </MenubarItem>
+        <MenubarItem @click="handleSignOut"> Abmelden </MenubarItem>
       </MenubarContent>
     </MenubarMenu>
   </Menubar>

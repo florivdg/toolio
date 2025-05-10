@@ -1,0 +1,11 @@
+---
+import Site from '@/layouts/Site.astro'
+import Menu from '@/components/Menu.vue'
+---
+
+<Site>
+  <Menu client:load />
+  <main class="p-4 lg:p-6">
+    <slot />
+  </main>
+</Site>
