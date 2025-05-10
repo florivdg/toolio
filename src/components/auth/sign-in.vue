@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -58,25 +57,25 @@ async function handleSubmit() {
 <template>
   <Card class="w-full max-w-sm">
     <CardHeader>
-      <CardTitle class="text-2xl"> Login </CardTitle>
+      <CardTitle class="text-2xl"> Anmelden </CardTitle>
       <CardDescription>
-        Enter your email below to login to your account.
+        Geben Sie Ihre E-Mail-Adresse ein, um sich anzumelden.
       </CardDescription>
     </CardHeader>
     <CardContent class="grid gap-4">
       <form @submit.prevent="handleSubmit" class="grid gap-4">
         <div class="grid gap-2">
-          <Label for="email">Email</Label>
+          <Label for="email">E-Mail</Label>
           <Input
             id="email"
             type="email"
             v-model="form.email"
-            placeholder="m@example.com"
+            placeholder="m@beispiel.de"
             required
           />
         </div>
         <div class="grid gap-2">
-          <Label for="password">Password</Label>
+          <Label for="password">Passwort</Label>
           <Input
             id="password"
             type="password"
@@ -84,7 +83,7 @@ async function handleSubmit() {
             required
           />
         </div>
-        <Button type="submit" class="w-full"> Sign in </Button>
+        <Button type="submit" class="w-full"> Anmelden </Button>
       </form>
     </CardContent>
   </Card>
