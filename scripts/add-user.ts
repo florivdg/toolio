@@ -1,9 +1,7 @@
 #!/usr/bin/env bun
-import { Database } from 'bun:sqlite'
-
-// Use SQLite file from env
-const dbFile = process.env.DB_FILE_NAME || 'sqlite.db'
-const db = new Database(dbFile)
+import { db } from '@/db/database'
+import { user, account } from '@/db/schema/auth'
+import { hashPassword } from 'better-auth/crypto'
 
 async function main() {
   const [, , email, password, name] = process.argv
@@ -13,30 +11,45 @@ async function main() {
     process.exit(1)
   }
 
-  const passwordHash = await Bun.password.hash(password)
   const userId = crypto.randomUUID()
   const accountId = crypto.randomUUID()
-  const now = Date.now()
+  const now = new Date()
+  const displayName = name ?? email.split('@')[0]
 
-  db.query(
-    `
-    INSERT INTO "user" 
-      (id, email, name, email_verified, image, created_at, updated_at)
-    VALUES 
-      (?, ?, ?, ?, ?, ?, ?);
-  `,
-  ).run(userId, email, name ?? email.split('@')[0], 1, null, now, now)
+  try {
+    // Create user
+    await db.insert(user).values({
+      id: userId,
+      email: email,
+      name: displayName,
+      emailVerified: true,
+      image: null,
+      createdAt: now,
+      updatedAt: now,
+    })
 
-  db.query(
-    `
-    INSERT INTO account 
-      (id, account_id, provider_id, user_id, password, created_at, updated_at)
-    VALUES 
-      (?, ?, ?, ?, ?, ?, ?);
-  `,
-  ).run(accountId, accountId, 'credentials', userId, passwordHash, now, now)
+    // Create account with hashed password
+    await db.insert(account).values({
+      id: accountId,
+      accountId: accountId,
+      providerId: 'credentials',
+      userId: userId,
+      accessToken: null,
+      refreshToken: null,
+      idToken: null,
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: null,
+      scope: null,
+      password: await hashPassword(password),
+      createdAt: now,
+      updatedAt: now,
+    })
 
-  console.log('Seed completed for user:', email)
+    console.log('User created successfully:', email)
+  } catch (error) {
+    console.error('Error creating user:', error)
+    process.exit(1)
+  }
 }
 
 main().catch((e) => {
