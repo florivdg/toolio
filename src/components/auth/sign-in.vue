@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Loader2 } from 'lucide-vue-next'
 
 const form = reactive({
   email: '',
@@ -19,6 +20,9 @@ const form = reactive({
 
 // Store the redirect URL
 const redirectUrl = ref('/')
+
+// Add loading state
+const isLoading = ref(false)
 
 // Extract redirect URL from query parameters on component mount
 onMounted(() => {
@@ -30,6 +34,7 @@ onMounted(() => {
 })
 
 async function handleSubmit() {
+  isLoading.value = true
   try {
     await signIn.email(
       {
@@ -43,12 +48,14 @@ async function handleSubmit() {
         },
         onError: (error) => {
           console.error('Error:', error)
+          isLoading.value = false
           // Handle error (e.g., show error message)
         },
       },
     )
   } catch (error) {
     console.error('Sign in failed:', error)
+    isLoading.value = false
     // Handle sign-in error (e.g., show error message)
   }
 }
@@ -72,6 +79,7 @@ async function handleSubmit() {
             v-model="form.email"
             placeholder="m@beispiel.de"
             required
+            :disabled="isLoading"
           />
         </div>
         <div class="grid gap-2">
@@ -81,9 +89,13 @@ async function handleSubmit() {
             type="password"
             v-model="form.password"
             required
+            :disabled="isLoading"
           />
         </div>
-        <Button type="submit" class="w-full"> Anmelden </Button>
+        <Button type="submit" class="w-full" :disabled="isLoading">
+          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+          {{ isLoading ? 'Bitte warten' : 'Anmelden' }}
+        </Button>
       </form>
     </CardContent>
   </Card>
