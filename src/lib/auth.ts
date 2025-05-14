@@ -11,5 +11,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
+    password: {
+      async hash(password) {
+        return await Bun.password.hash(password)
+      },
+      async verify(data) {
+        return await Bun.password.verify(data.password, data.hash)
+      },
+    },
   },
 })

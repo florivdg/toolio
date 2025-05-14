@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 import { db } from '@/db/database'
 import { user, account } from '@/db/schema/auth'
-import { hashPassword } from 'better-auth/crypto'
 
 async function main() {
   const [, , email, password, name] = process.argv
@@ -40,7 +39,7 @@ async function main() {
       accessTokenExpiresAt: null,
       refreshTokenExpiresAt: null,
       scope: null,
-      password: await hashPassword(password),
+      password: await Bun.password.hash(password),
       createdAt: now,
       updatedAt: now,
     })
