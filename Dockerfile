@@ -8,6 +8,9 @@ COPY . .
 RUN bun install
 RUN bun run build
 
+# Bundle add user script
+RUN bun build scripts/add-user.ts --outdir . --target bun
+
 # Runtime stage
 FROM oven/bun:1-alpine
 
@@ -25,7 +28,8 @@ COPY --from=builder /app/dist /app/dist
 # Copy drizzle schema and scripts
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
-COPY scripts/ ./scripts/
+COPY scripts/migrate.ts ./scripts/
+COPY --from=builder /app/add-user.js /app/scripts/
 
 ENV HOST=0.0.0.0
 ENV PORT=4321
