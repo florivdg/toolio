@@ -1,0 +1,58 @@
+# Node.js dependencies and build artifacts
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm
+.yarn
+dist
+.astro
+
+# Development and editor files
+.git
+.github
+.idea
+.vscode
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+*.swp
+*.swo
+.env.local
+.env.development
+.env.test
+.env*.local
+*.log
+
+# Local database
+sqlite.db
+*.sqlite
+*.sqlite3
+*.db
+
+# Documentation and non-essential files
+README.md
+CHANGELOG.md
+LICENSE
+docs
+!Dockerfile
+
+# Testing
+coverage
+.nyc_output
+test
+tests
+__tests__
+
+# Miscellaneous
+.editorconfig
+.eslintrc*
+.prettierrc*
+.stylelintrc*
+.husky
+.git*
+.travis.yml
+.circleci
+*.tsbuildinfo
