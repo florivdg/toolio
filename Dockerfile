@@ -22,6 +22,11 @@ RUN bun install --production --frozen-lockfile
 # Copy built output from builder stage
 COPY --from=builder /app/dist /app/dist
 
+# Copy drizzle schema and scripts
+COPY drizzle.config.ts ./
+COPY drizzle/ ./drizzle/
+COPY scripts/ ./scripts/
+
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
