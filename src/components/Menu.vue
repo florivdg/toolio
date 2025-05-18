@@ -46,7 +46,7 @@ async function handleNav(path: string) {
           Einstellungen... <MenubarShortcut>⌘,</MenubarShortcut>
         </MenubarItem>
         <MenubarSeparator />
-        <MenubarItem>
+        <MenubarItem @click="handleSignOut">
           Toolio beenden <MenubarShortcut>⌘Q</MenubarShortcut>
         </MenubarItem>
       </MenubarContent>
