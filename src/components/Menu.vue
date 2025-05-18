@@ -29,6 +29,10 @@ async function handleSignOut() {
     },
   })
 }
+
+async function handleNav(path: string) {
+  window.location.href = path
+}
 </script>
 
 <template>
@@ -36,7 +40,7 @@ async function handleSignOut() {
     <MenubarMenu>
       <MenubarTrigger class="font-bold"> Toolio </MenubarTrigger>
       <MenubarContent>
-        <MenubarItem>Über Toolio</MenubarItem>
+        <MenubarItem @click="handleNav('/')">Über Toolio</MenubarItem>
         <MenubarSeparator />
         <MenubarItem>
           Einstellungen... <MenubarShortcut>⌘,</MenubarShortcut>
@@ -50,7 +54,7 @@ async function handleSignOut() {
     <MenubarMenu>
       <MenubarTrigger class="relative"> APIs </MenubarTrigger>
       <MenubarContent>
-        <MenubarItem> Übersicht </MenubarItem>
+        <MenubarItem @click="handleNav('/docs')"> Übersicht </MenubarItem>
         <MenubarSeparator />
         <MenubarItem> API 1 </MenubarItem>
         <MenubarItem> API 2 </MenubarItem>
@@ -60,7 +64,7 @@ async function handleSignOut() {
     <MenubarMenu>
       <MenubarTrigger> Tools </MenubarTrigger>
       <MenubarContent>
-        <MenubarItem> Übersicht </MenubarItem>
+        <MenubarItem @click="handleNav('/tools')"> Übersicht </MenubarItem>
         <MenubarSeparator />
         <MenubarItem> Tool 1 </MenubarItem>
         <MenubarItem> Tool 2 </MenubarItem>
@@ -88,7 +92,9 @@ async function handleSignOut() {
     <MenubarMenu>
       <MenubarTrigger> Account </MenubarTrigger>
       <MenubarContent>
-        <MenubarItem> Account verwalten... </MenubarItem>
+        <MenubarItem @click="handleNav('/account')">
+          Account verwalten...
+        </MenubarItem>
         <MenubarSeparator />
         <MenubarItem @click="handleSignOut"> Abmelden </MenubarItem>
       </MenubarContent>
