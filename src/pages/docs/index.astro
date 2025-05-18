@@ -1,9 +1,14 @@
 ---
 import App from '@/layouts/App.astro'
+import PageHeader from '@/components/PageHeader.astro'
+import { Button } from '@/components/ui/button'
 ---
 
 <App>
-  <section>
-    <h1>APIs</h1>
-  </section>
+  <PageHeader title="Dokumentation">
+    <Fragment slot="actions">
+      <Button>Action</Button>
+      <Button variant="ghost">Secondary</Button>
+    </Fragment>
+  </PageHeader>
 </App>

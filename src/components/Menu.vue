@@ -52,7 +52,7 @@ async function handleNav(path: string) {
       </MenubarContent>
     </MenubarMenu>
     <MenubarMenu>
-      <MenubarTrigger class="relative"> APIs </MenubarTrigger>
+      <MenubarTrigger class="relative"> Docs </MenubarTrigger>
       <MenubarContent>
         <MenubarItem @click="handleNav('/docs')"> Übersicht </MenubarItem>
         <MenubarSeparator />
