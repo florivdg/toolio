@@ -1,85 +1,58 @@
 import type { APIRoute } from 'astro'
-import { db } from '@/db/database'
-import {
-  itunesMediaItem,
-  itunesMediaItemSchema,
-  itunesPriceHistory,
-  itunesPriceHistorySchema,
-} from '@/db/schema/itunes'
-import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { lookupAndStoreTrack } from '@/lib/itunes/storage'
 
-// Define a combined schema for the API
+// Define a simple schema for the API that only requires trackId
 const itunesAddSchema = z.object({
-  media: itunesMediaItemSchema,
-  price: itunesPriceHistorySchema.omit({ mediaItemId: true }).optional(),
+  trackId: z.number(),
+  country: z.string().default('de'),
 })
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     // Parse and validate the request body
     const body = await request.json()
-
-    // Convert releaseDate from string to Date if it's a string
-    if (body.media && typeof body.media.releaseDate === 'string') {
-      body.media.releaseDate = new Date(body.media.releaseDate)
-    }
-
     const validated = itunesAddSchema.parse(body)
+    const { trackId, country } = validated
 
-    // Check if the media item already exists
-    const existingItem = db
-      .select({ id: itunesMediaItem.id })
-      .from(itunesMediaItem)
-      .where(eq(itunesMediaItem.trackId, validated.media.trackId))
-      .get()
+    try {
+      // Use the extracted function to lookup and store the track
+      const { mediaItemId } = await lookupAndStoreTrack(trackId, country)
 
-    let mediaItemId: string
-
-    if (existingItem) {
-      // Update existing media item
-      mediaItemId = existingItem.id
-      db.update(itunesMediaItem)
-        .set({
-          ...validated.media,
-          updatedAt: new Date(),
-        })
-        .where(eq(itunesMediaItem.id, mediaItemId))
-        .run()
-    } else {
-      // Insert new media item
-      const result = db
-        .insert(itunesMediaItem)
-        .values(validated.media)
-        .returning({ id: itunesMediaItem.id })
-        .get()
-
-      mediaItemId = result.id
-    }
-
-    // Insert price history if provided
-    if (validated.price) {
-      db.insert(itunesPriceHistory)
-        .values({
-          ...validated.price,
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Media item saved successfully',
           mediaItemId,
-        })
-        .run()
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Media item saved successfully',
-        mediaItemId,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
         },
-      },
-    )
+      )
+    } catch (error) {
+      // Handle specific errors from our library functions
+      if (
+        error instanceof Error &&
+        error.message === 'Item not found in iTunes store'
+      ) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Item not found in iTunes store',
+          }),
+          {
+            status: 404,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+      }
+      throw error // Re-throw to be caught by outer catch block
+    }
   } catch (error) {
     console.error('Error adding iTunes media item:', error)
 

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { db } from '@/db/database'
 import { itunesMediaItem, itunesPriceHistory } from '@/db/schema/itunes'
-import { desc, and, sql, SQL, eq } from 'drizzle-orm'
+import { desc, and, sql, SQL } from 'drizzle-orm'
 import { z } from 'zod'
 
 // Define query parameters schema
