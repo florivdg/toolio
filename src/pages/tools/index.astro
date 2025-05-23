@@ -1,14 +1,72 @@
 ---
 import PageHeader from '@/components/PageHeader.astro'
-import { Button } from '@/components/ui/button'
 import App from '@/layouts/App.astro'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+
+// Static list of available tools
+const tools = [
+  {
+    id: 'itunes',
+    title: 'iTunes Price Watcher',
+    description: 'Search and track iTunes media item prices',
+    tags: ['iTunes', 'Price Tracking', 'Media'],
+    href: '/tools/itunes',
+  },
+]
 ---
 
 <App>
   <PageHeader title="Tools">
-    <Fragment slot="actions">
-      <Button>Action</Button>
-      <Button variant="ghost">Secondary</Button>
+    <Fragment slot="description">
+      Entdecke alle verfügbaren Tools und deren Funktionen.
     </Fragment>
   </PageHeader>
+
+  <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {
+      tools.map((tool) => (
+        <a href={tool.href} class="block">
+          <Card class="h-full cursor-pointer transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>{tool.title}</CardTitle>
+              <CardDescription>{tool.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="flex flex-wrap gap-2">
+                {tool.tags.map((tag) => (
+                  <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-700/10 ring-inset">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div class="mt-4">
+                <span class="text-primary inline-flex items-center text-sm font-medium">
+                  Tool öffnen
+                  <svg
+                    class="ml-1 h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </a>
+      ))
+    }
+  </div>
 </App>
