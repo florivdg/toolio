@@ -9,8 +9,10 @@ const queryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
   artistName: z.string().optional(),
-  trackName: z.string().optional(),
+  name: z.string().optional(),
   genreName: z.string().optional(),
+  mediaType: z.string().optional(),
+  entityType: z.string().optional(),
   withPrices: z.coerce.boolean().default(false),
 })
 
@@ -29,15 +31,27 @@ export const GET: APIRoute = async ({ url }) => {
       )
     }
 
-    if (validated.trackName) {
+    if (validated.name) {
       whereConditions.push(
-        sql`lower(${itunesMediaItem.trackName}) like lower(${'%' + validated.trackName + '%'})`,
+        sql`lower(${itunesMediaItem.name}) like lower(${'%' + validated.name + '%'})`,
       )
     }
 
     if (validated.genreName) {
       whereConditions.push(
         sql`lower(${itunesMediaItem.primaryGenreName}) like lower(${'%' + validated.genreName + '%'})`,
+      )
+    }
+
+    if (validated.mediaType) {
+      whereConditions.push(
+        sql`lower(${itunesMediaItem.mediaType}) like lower(${'%' + validated.mediaType + '%'})`,
+      )
+    }
+
+    if (validated.entityType) {
+      whereConditions.push(
+        sql`lower(${itunesMediaItem.entityType}) like lower(${'%' + validated.entityType + '%'})`,
       )
     }
 
@@ -92,11 +106,45 @@ export const GET: APIRoute = async ({ url }) => {
         priceHistoryMap.get(price.mediaItemId).push(price)
       }
 
-      // Combine media items with their price histories
-      const itemsWithPrices = mediaItems.map((item) => ({
-        ...item,
-        prices: priceHistoryMap.get(item.id) || [],
-      }))
+      // Process additional data and price data stored as JSON
+      const itemsWithPrices = mediaItems.map((item) => {
+        // Parse additionalData if it exists
+        let parsedItem = { ...item }
+        if (item.additionalData) {
+          try {
+            parsedItem.additionalData = JSON.parse(item.additionalData)
+          } catch (e) {
+            console.error(
+              `Failed to parse additionalData for item ${item.id}:`,
+              e,
+            )
+          }
+        }
+
+        // Get price history and parse additionalPriceData
+        const prices = priceHistoryMap.get(item.id) || []
+        const parsedPrices = prices.map((price: any) => {
+          let parsedPrice = { ...price }
+          if (price.additionalPriceData) {
+            try {
+              parsedPrice.additionalPriceData = JSON.parse(
+                price.additionalPriceData,
+              )
+            } catch (e) {
+              console.error(
+                `Failed to parse additionalPriceData for price ${price.id}:`,
+                e,
+              )
+            }
+          }
+          return parsedPrice
+        })
+
+        return {
+          ...parsedItem,
+          prices: parsedPrices,
+        }
+      })
 
       return new Response(
         JSON.stringify({
@@ -124,12 +172,28 @@ export const GET: APIRoute = async ({ url }) => {
         .offset(validated.offset)
         .all()
 
+      // Parse additionalData if it exists
+      const parsedItems = mediaItems.map((item) => {
+        let parsedItem = { ...item }
+        if (item.additionalData) {
+          try {
+            parsedItem.additionalData = JSON.parse(item.additionalData)
+          } catch (e) {
+            console.error(
+              `Failed to parse additionalData for item ${item.id}:`,
+              e,
+            )
+          }
+        }
+        return parsedItem
+      })
+
       // Return media items without prices
       return new Response(
         JSON.stringify({
           success: true,
-          data: mediaItems,
-          count: mediaItems.length,
+          data: parsedItems,
+          count: parsedItems.length,
           offset: validated.offset,
           limit: validated.limit,
         }),

@@ -8,27 +8,44 @@ import {
 import { createInsertSchema } from 'drizzle-zod'
 import { randomUUID } from 'crypto'
 
-// Table for storing basic iTunes media item information
+// Table for storing generic iTunes media item information
 export const itunesMediaItem = sqliteTable(
   'itunes_media_item',
   {
     id: text('id')
       .primaryKey()
       .$defaultFn(() => randomUUID()),
-    trackId: integer('track_id').notNull().unique(), // iTunes unique identifier
+    // Core identifier fields (can be trackId or collectionId)
+    itunesId: integer('itunes_id').notNull().unique(), // iTunes unique identifier (trackId or collectionId)
+    itunesIdType: text('itunes_id_type').notNull(), // 'track' or 'collection'
+
+    // Common fields for all media types
     wrapperType: text('wrapper_type'), // track, collection, etc.
-    kind: text('kind'), // feature-movie, song, etc.
+    mediaType: text('media_type'), // movie, tvShow, music, etc.
+    entityType: text('entity_type'), // movie, tvSeason, song, etc.
+
+    // Basic information
+    name: text('name').notNull(), // The primary name (trackName or collectionName)
     artistName: text('artist_name'),
-    trackName: text('track_name').notNull(),
-    trackCensoredName: text('track_censored_name'),
-    trackViewUrl: text('track_view_url'),
-    previewUrl: text('preview_url'),
-    artworkUrl: text('artwork_url'), // We'll store the highest quality artwork URL
+    censoredName: text('censored_name'),
+    viewUrl: text('view_url'), // URL to view in iTunes
+    previewUrl: text('preview_url'), // For audio/video previews
+    artworkUrl: text('artwork_url'), // Highest quality artwork URL
+
+    // Dates and metadata
     releaseDate: integer('release_date', { mode: 'timestamp' }),
     primaryGenreName: text('primary_genre_name'),
+    contentAdvisoryRating: text('content_advisory_rating'), // Age rating
     description: text('description'), // longDescription from the API
+
+    // Locale information
     country: text('country'),
     currency: text('currency'),
+
+    // Additional data stored as JSON string
+    additionalData: text('additional_data'), // Store type-specific fields as JSON string
+
+    // Timestamps
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -36,7 +53,8 @@ export const itunesMediaItem = sqliteTable(
   },
   (table) => [
     index('itunes_artist_idx').on(table.artistName),
-    index('itunes_track_name_idx').on(table.trackName),
+    index('itunes_name_idx').on(table.name),
+    index('itunes_media_type_idx').on(table.mediaType),
   ],
 )
 
@@ -50,12 +68,19 @@ export const itunesPriceHistory = sqliteTable(
     mediaItemId: text('media_item_id')
       .notNull()
       .references(() => itunesMediaItem.id, { onDelete: 'cascade' }),
-    trackPrice: real('track_price'), // Regular price
-    trackHdPrice: real('track_hd_price'), // HD price if available
-    collectionPrice: real('collection_price'), // Collection price if part of a collection
-    collectionHdPrice: real('collection_hd_price'), // Collection HD price if available
+
+    // Prices (can be for track or collection)
+    standardPrice: real('standard_price'), // Regular price
+    hdPrice: real('hd_price'), // HD price if available
+
+    // Locale information
     currency: text('currency').notNull(),
     country: text('country').notNull(),
+
+    // Additional price data stored as JSON string
+    additionalPriceData: text('additional_price_data'), // Store any additional price data as JSON string
+
+    // Timestamp
     recordedAt: integer('recorded_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),

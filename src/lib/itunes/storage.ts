@@ -6,18 +6,26 @@
 import { db } from '@/db/database'
 import { itunesMediaItem, itunesPriceHistory } from '@/db/schema/itunes'
 import { eq } from 'drizzle-orm'
-import { lookupTrack } from './lookup'
+import { lookupTrack, lookupCollection } from './lookup'
+import { mapItunesDataToMediaItem, mapItunesDataToPriceHistory } from './mapper'
 
 /**
- * Lookup and store an iTunes track by its trackId
+ * Lookup and store an iTunes item by its ID
  *
- * @param trackId The iTunes trackId to lookup and store
+ * @param id The iTunes ID to lookup and store
+ * @param isCollection Whether the ID is a collection ID
  * @param country The country code (defaults to "de")
- * @returns The mediaItemId and a flag indicating if it was newly created
+ * @returns The mediaItemId
  */
-export async function lookupAndStoreTrack(trackId: number, country = 'de') {
-  // Use the lookup function to get iTunes data
-  const lookupResponse = await lookupTrack(trackId, country)
+export async function lookupAndStoreItem(
+  id: number,
+  isCollection: boolean = false,
+  country = 'de',
+) {
+  // Use the lookup function to get iTunes data based on item type
+  const lookupResponse = isCollection
+    ? await lookupCollection(id, country)
+    : await lookupTrack(id, country)
 
   if (lookupResponse.resultCount === 0) {
     throw new Error('Item not found in iTunes store')
@@ -36,50 +44,28 @@ export async function lookupAndStoreTrack(trackId: number, country = 'de') {
 }
 
 /**
- * Maps iTunes API data to our database schema
+ * Lookup and store an iTunes track by its trackId (legacy method)
  *
- * @param itunesData The raw data from iTunes API
- * @returns Formatted data matching our database schema
+ * @param trackId The iTunes trackId to lookup and store
+ * @param country The country code (defaults to "de")
+ * @returns The mediaItemId
  */
-export function mapItunesDataToMediaItem(itunesData: any) {
-  return {
-    trackId: itunesData.trackId,
-    wrapperType: itunesData.wrapperType,
-    kind: itunesData.kind,
-    artistName: itunesData.artistName,
-    trackName: itunesData.trackName,
-    trackCensoredName: itunesData.trackCensoredName,
-    trackViewUrl: itunesData.trackViewUrl,
-    previewUrl: itunesData.previewUrl,
-    artworkUrl: itunesData.artworkUrl100, // Use the highest quality artwork available
-    releaseDate: new Date(itunesData.releaseDate),
-    primaryGenreName: itunesData.primaryGenreName,
-    description: itunesData.longDescription,
-    country: itunesData.country,
-    currency: itunesData.currency,
-  }
+export async function lookupAndStoreTrack(trackId: number, country = 'de') {
+  return lookupAndStoreItem(trackId, false, country)
 }
 
 /**
- * Maps iTunes API data to our price history schema
+ * Lookup and store an iTunes collection by its collectionId
  *
- * @param itunesData The raw data from iTunes API
- * @param mediaItemId The ID of the related media item
- * @returns Formatted price data matching our database schema
+ * @param collectionId The iTunes collectionId to lookup and store
+ * @param country The country code (defaults to "de")
+ * @returns The mediaItemId
  */
-export function mapItunesDataToPriceHistory(
-  itunesData: any,
-  mediaItemId: string,
+export async function lookupAndStoreCollection(
+  collectionId: number,
+  country = 'de',
 ) {
-  return {
-    mediaItemId,
-    trackPrice: itunesData.trackPrice,
-    trackHdPrice: itunesData.trackHdPrice,
-    collectionPrice: itunesData.collectionPrice,
-    collectionHdPrice: itunesData.collectionHdPrice,
-    currency: itunesData.currency,
-    country: itunesData.country,
-  }
+  return lookupAndStoreItem(collectionId, true, country)
 }
 
 /**
@@ -89,15 +75,15 @@ export function mapItunesDataToPriceHistory(
  * @returns The ID of the saved media item
  */
 export async function saveItunesMediaItem(itunesData: any): Promise<string> {
-  // Check if the media item already exists
+  // Map iTunes data to our schema
+  const mediaItemData = mapItunesDataToMediaItem(itunesData)
+
+  // Check if the media item already exists based on itunesId and itunesIdType
   const existingItem = db
     .select({ id: itunesMediaItem.id })
     .from(itunesMediaItem)
-    .where(eq(itunesMediaItem.trackId, itunesData.trackId))
+    .where(eq(itunesMediaItem.itunesId, mediaItemData.itunesId))
     .get()
-
-  // Map iTunes data to our schema
-  const mediaItemData = mapItunesDataToMediaItem(itunesData)
 
   if (existingItem) {
     // Update existing media item
@@ -127,7 +113,6 @@ export async function saveItunesMediaItem(itunesData: any): Promise<string> {
  *
  * @param mediaItemId The ID of the iTunes media item
  * @param itunesData The iTunes track data
- * @returns The ID of the created price history entry
  */
 export async function savePriceHistory(
   mediaItemId: string,

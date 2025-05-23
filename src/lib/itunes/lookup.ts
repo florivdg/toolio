@@ -6,9 +6,9 @@
 
 interface LookupParams {
   /**
-   * iTunes trackId to lookup
+   * iTunes ID to lookup (can be trackId or collectionId)
    */
-  trackId: number
+  id: number
 
   /**
    * Country code for the iTunes store (defaults to "de")
@@ -16,51 +16,57 @@ interface LookupParams {
   country?: string
 }
 
-interface TrackResult {
+interface ItemResult {
   wrapperType: string
-  kind: string
-  trackId: number
+  kind?: string
+  collectionType?: string
+  trackId?: number
+  collectionId?: number
   artistName: string
-  trackName: string
-  trackCensoredName: string
-  trackViewUrl: string
-  previewUrl: string
-  artworkUrl30: string
-  artworkUrl60: string
-  artworkUrl100: string
+  trackName?: string
+  collectionName?: string
+  trackCensoredName?: string
+  collectionCensoredName?: string
+  trackViewUrl?: string
+  collectionViewUrl?: string
+  previewUrl?: string
+  artworkUrl30?: string
+  artworkUrl60?: string
+  artworkUrl100?: string
+  artworkUrl600?: string
   collectionPrice?: number
   trackPrice?: number
   collectionHdPrice?: number
   trackHdPrice?: number
   releaseDate: string
-  collectionExplicitness: string
-  trackExplicitness: string
-  trackTimeMillis: number
+  collectionExplicitness?: string
+  trackExplicitness?: string
+  trackTimeMillis?: number
   country: string
   currency: string
   primaryGenreName: string
-  contentAdvisoryRating: string
-  longDescription: string
+  contentAdvisoryRating?: string
+  longDescription?: string
   [key: string]: any // Allow for additional properties
 }
 
 interface LookupResponse {
   resultCount: number
-  results: TrackResult[]
+  results: ItemResult[]
 }
 
 /**
- * Lookup an item in the iTunes store by trackId and country
+ * Lookup an item in the iTunes store by ID and country
  *
  * @param params The lookup parameters
  * @returns The lookup response with results
  */
 export async function lookup({
-  trackId,
+  id,
   country = 'de',
 }: LookupParams): Promise<LookupResponse> {
   const url = new URL('https://itunes.apple.com/lookup')
-  url.searchParams.append('id', trackId.toString())
+  url.searchParams.append('id', id.toString())
   url.searchParams.append('country', country)
 
   const response = await fetch(url.toString())
@@ -85,5 +91,19 @@ export async function lookupTrack(
   trackId: number,
   country = 'de',
 ): Promise<LookupResponse> {
-  return lookup({ trackId, country })
+  return lookup({ id: trackId, country })
+}
+
+/**
+ * Lookup a collection in the iTunes store by collectionId and country
+ *
+ * @param collectionId The iTunes collectionId to lookup
+ * @param country The country code (defaults to "de")
+ * @returns The lookup response with results
+ */
+export async function lookupCollection(
+  collectionId: number,
+  country = 'de',
+): Promise<LookupResponse> {
+  return lookup({ id: collectionId, country })
 }

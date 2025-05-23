@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "90dc3e02-9fd9-47c9-ba4d-162a7f4c87ef",
+  "id": "db73e293-222d-4441-9c8b-4cc12203b1c5",
   "prevId": "1f591158-9021-469f-af87-5266d41d0a46",
   "tables": {
     "account": {
@@ -336,9 +336,16 @@
           "notNull": true,
           "autoincrement": false
         },
-        "track_id": {
-          "name": "track_id",
+        "itunes_id": {
+          "name": "itunes_id",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "itunes_id_type": {
+          "name": "itunes_id_type",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -350,11 +357,25 @@
           "notNull": false,
           "autoincrement": false
         },
-        "kind": {
-          "name": "kind",
+        "media_type": {
+          "name": "media_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "artist_name": {
@@ -364,22 +385,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "track_name": {
-          "name": "track_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "track_censored_name": {
-          "name": "track_censored_name",
+        "censored_name": {
+          "name": "censored_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "track_view_url": {
-          "name": "track_view_url",
+        "view_url": {
+          "name": "view_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -413,6 +427,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "content_advisory_rating": {
+          "name": "content_advisory_rating",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "description": {
           "name": "description",
           "type": "text",
@@ -434,6 +455,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "additional_data": {
+          "name": "additional_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -450,10 +478,10 @@
         }
       },
       "indexes": {
-        "itunes_media_item_track_id_unique": {
-          "name": "itunes_media_item_track_id_unique",
+        "itunes_media_item_itunes_id_unique": {
+          "name": "itunes_media_item_itunes_id_unique",
           "columns": [
-            "track_id"
+            "itunes_id"
           ],
           "isUnique": true
         },
@@ -464,10 +492,17 @@
           ],
           "isUnique": false
         },
-        "itunes_track_name_idx": {
-          "name": "itunes_track_name_idx",
+        "itunes_name_idx": {
+          "name": "itunes_name_idx",
           "columns": [
-            "track_name"
+            "name"
+          ],
+          "isUnique": false
+        },
+        "itunes_media_type_idx": {
+          "name": "itunes_media_type_idx",
+          "columns": [
+            "media_type"
           ],
           "isUnique": false
         }
@@ -494,29 +529,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "track_price": {
-          "name": "track_price",
+        "standard_price": {
+          "name": "standard_price",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "track_hd_price": {
-          "name": "track_hd_price",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "collection_price": {
-          "name": "collection_price",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "collection_hd_price": {
-          "name": "collection_hd_price",
+        "hd_price": {
+          "name": "hd_price",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
@@ -534,6 +555,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "additional_price_data": {
+          "name": "additional_price_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "recorded_at": {

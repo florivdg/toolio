@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro'
 import { z } from 'zod'
-import { lookupAndStoreTrack } from '@/lib/itunes/storage'
+import { lookupAndStoreItem } from '@/lib/itunes/storage'
 
-// Define a simple schema for the API that only requires trackId
+// Define a schema for the API that supports both track and collection IDs
 const itunesAddSchema = z.object({
-  trackId: z.number(),
+  itunesId: z.number(),
+  isCollection: z.boolean().default(false),
   country: z.string().default('de'),
 })
 
@@ -13,11 +14,15 @@ export const POST: APIRoute = async ({ request }) => {
     // Parse and validate the request body
     const body = await request.json()
     const validated = itunesAddSchema.parse(body)
-    const { trackId, country } = validated
+    const { itunesId, isCollection, country } = validated
 
     try {
-      // Use the extracted function to lookup and store the track
-      const { mediaItemId } = await lookupAndStoreTrack(trackId, country)
+      // Use the extracted function to lookup and store the item
+      const { mediaItemId } = await lookupAndStoreItem(
+        itunesId,
+        isCollection,
+        country,
+      )
 
       return new Response(
         JSON.stringify({

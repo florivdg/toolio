@@ -1,3 +1,4 @@
+// filepath: /Users/flori/Projects/toolio/src/lib/itunes/search.ts
 /**
  * iTunes search API client
  *
@@ -47,29 +48,40 @@ export interface SearchResponse {
  */
 export interface SearchResult {
   wrapperType: string
-  kind: string
-  trackId: number
+  kind?: string
+  collectionType?: string
+  trackId?: number
+  collectionId?: number
+  artistId?: number
   artistName: string
-  trackName: string
-  trackCensoredName: string
-  trackViewUrl: string
-  previewUrl: string
-  artworkUrl30: string
-  artworkUrl60: string
-  artworkUrl100: string
+  trackName?: string
+  collectionName?: string
+  trackCensoredName?: string
+  collectionCensoredName?: string
+  artistViewUrl?: string
+  trackViewUrl?: string
+  collectionViewUrl?: string
+  previewUrl?: string
+  artworkUrl30?: string
+  artworkUrl60?: string
+  artworkUrl100?: string
+  artworkUrl600?: string
   collectionPrice?: number
   trackPrice?: number
   collectionHdPrice?: number
   trackHdPrice?: number
   releaseDate: string
-  collectionExplicitness: string
-  trackExplicitness: string
-  trackTimeMillis: number
+  collectionExplicitness?: string
+  trackExplicitness?: string
+  trackTimeMillis?: number
   country: string
   currency: string
   primaryGenreName: string
-  contentAdvisoryRating: string
-  longDescription: string
+  contentAdvisoryRating?: string
+  longDescription?: string
+  shortDescription?: string
+  trackCount?: number
+  copyright?: string
   [key: string]: any // Allow for additional properties
 }
 
@@ -138,4 +150,20 @@ export async function searchTVShows(
   limit = 20,
 ): Promise<SearchResponse> {
   return search({ term, media: 'tvShow', entity: 'tvSeason', country, limit })
+}
+
+/**
+ * Search for music in the iTunes store
+ *
+ * @param term The search term
+ * @param country The country code (defaults to "de")
+ * @param limit Maximum number of results to return (defaults to 20)
+ * @returns The search response with results
+ */
+export async function searchMusic(
+  term: string,
+  country = 'de',
+  limit = 20,
+): Promise<SearchResponse> {
+  return search({ term, media: 'music', country, limit })
 }
