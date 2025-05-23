@@ -1,4 +1,5 @@
 ---
+import { getCollection } from 'astro:content'
 import PageHeader from '@/components/PageHeader.astro'
 import App from '@/layouts/App.astro'
 import {
@@ -8,17 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
-// Static list of available tools
-const tools = [
-  {
-    id: 'itunes',
-    title: 'iTunes Price Watcher',
-    description: 'Search and track iTunes media item prices',
-    tags: ['iTunes', 'Price Tracking', 'Media'],
-    href: '/tools/itunes',
-  },
-]
+const toolsDocs = await getCollection('docs', (entry) => !entry.data.draft)
 ---
 
 <App>
@@ -30,20 +23,19 @@ const tools = [
 
   <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
     {
-      tools.map((tool) => (
-        <a href={tool.href} class="block">
+      toolsDocs.map((doc) => (
+        <a href={`/tools/${doc.id}`} class="block">
           <Card class="h-full cursor-pointer transition-shadow hover:shadow-lg">
             <CardHeader>
-              <CardTitle>{tool.title}</CardTitle>
-              <CardDescription>{tool.description}</CardDescription>
+              <CardTitle>{doc.data.title}</CardTitle>
+              <CardDescription>{doc.data.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div class="flex flex-wrap gap-2">
-                {tool.tags.map((tag) => (
-                  <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-700/10 ring-inset">
-                    {tag}
-                  </span>
-                ))}
+                {doc.data.tags &&
+                  doc.data.tags.map((tag) => (
+                    <Badge variant="outline">{tag}</Badge>
+                  ))}
               </div>
               <div class="mt-4">
                 <span class="text-primary inline-flex items-center text-sm font-medium">

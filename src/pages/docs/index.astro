@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 const docs = await getCollection('docs', (entry) => !entry.data.draft)
 ---
@@ -35,13 +36,11 @@ const docs = await getCollection('docs', (entry) => !entry.data.draft)
               <div class="flex flex-wrap gap-2">
                 {doc.data.tags &&
                   doc.data.tags.map((tag) => (
-                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-700/10 ring-inset">
-                      {tag}
-                    </span>
+                    <Badge variant="outline">{tag}</Badge>
                   ))}
               </div>
               {doc.data.createdAt && (
-                <p class="text-muted-foreground mt-2 text-sm">
+                <p class="text-muted-foreground mt-4 text-sm">
                   Erstellt: {doc.data.createdAt.toLocaleDateString('de-DE')}
                 </p>
               )}
