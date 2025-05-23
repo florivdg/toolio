@@ -23,6 +23,8 @@ This app itself is built with Astro using Vue.js components, Tailwind CSS 4 for 
 
 ## Architecture Patterns
 
+Every user facing text is written in German.
+
 ### Tool Structure
 
 Each tool should follow this pattern:

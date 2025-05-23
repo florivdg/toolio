@@ -2,6 +2,7 @@
 import PageHeader from '@/components/PageHeader.astro'
 import { Button } from '@/components/ui/button'
 import App from '@/layouts/App.astro'
+import VueApp from './_app.vue'
 ---
 
 <App>
@@ -11,4 +12,8 @@ import App from '@/layouts/App.astro'
       <Button variant="ghost">Secondary</Button>
     </Fragment>
   </PageHeader>
+
+  <div class="mt-8">
+    <VueApp client:load />
+  </div>
 </App>
