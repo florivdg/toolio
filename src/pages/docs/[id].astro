@@ -1,0 +1,29 @@
+---
+import App from '@/layouts/App.astro'
+import { getEntry, render } from 'astro:content'
+
+// 1. Get the slug from the incoming server request
+const { id } = Astro.params
+
+if (id === undefined) {
+  return Astro.redirect('/404')
+}
+
+// 2. Query for the entry directly using the request slug
+const post = await getEntry('docs', id)
+
+// 3. Redirect if the entry does not exist
+if (post === undefined) {
+  return Astro.redirect('/404')
+}
+
+// 4. Render the entry to HTML in the template
+const { Content } = await render(post)
+---
+
+<App>
+  <div class="prose dark:prose-invert mx-auto">
+    <h1>{post.data.title}</h1>
+    <Content />
+  </div>
+</App>
