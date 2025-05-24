@@ -44,6 +44,9 @@ Each tool should follow this pattern:
 ### Component Structure
 
 - UI components from shadcn-vue in `/src/components/ui/` (these should never be modified)
+  - Use shadcn-vue components as-is, do not modify their source code
+  - These components are available for use: Sidebar, Accordion, Alert, Alert Dialog, Aspect Ratio, Avatar, Badge, Breadcrumb, Button, Calendar, Card, Carousel, Checkbox, Collapsible, Combobox, Command, Context Menu, Data Table, Date Picker, Dialog, Drawer, Dropdown Menu, Form, Hover Card, Input, Label, Menubar, Navigation Menu, Number Field, Pagination, PIN Input, Popover, Progress, Radio Group, Range Calendar, Resizable, Scroll Area, Select, Separator, Sheet, Skeleton, Slider, Sonner, Stepper, Switch, Table, Tabs, Tags Input, Textarea, Toast, Toggle, Toggle Group, Tooltip
+  - If not already installed, run `bunx --bun shadcn-vue@latest add <component-name>` to add the new component
 - Custom components in `/src/components/`
 - Layout components in `/src/layouts/`
 
