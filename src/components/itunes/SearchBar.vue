@@ -23,6 +23,7 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   search: [SearchParams]
+  clear: []
 }>()
 
 const handleSearch = () => {
@@ -37,6 +38,9 @@ const handleSearch = () => {
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Enter') {
     handleSearch()
+  } else if (event.key === 'Escape') {
+    searchTerm.value = ''
+    emit('clear')
   }
 }
 </script>
@@ -46,7 +50,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     <div class="flex-1">
       <Input
         v-model.trim="searchTerm"
-        type="text"
+        type="search"
         placeholder="Suche nach Filmen oder Serien..."
         class="w-full"
         @keydown="handleKeydown"

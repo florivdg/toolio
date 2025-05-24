@@ -1,6 +1,10 @@
 <template>
   <div>
-    <SearchBar @search="handleSearch" :isLoading="loading" />
+    <SearchBar
+      @search="handleSearch"
+      @clear="handleClear"
+      :isLoading="loading"
+    />
 
     <div class="mt-8">
       <div
@@ -96,29 +100,43 @@
 
           <CardAction
             v-if="result.trackViewUrl || result.collectionViewUrl"
-            class="p-3 pt-0"
+            class="mt-auto space-y-2 p-3 pt-0"
           >
-            <a
-              :href="result.trackViewUrl || result.collectionViewUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-xs font-medium transition-colors"
-            >
-              <svg
-                class="mr-1 h-3 w-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <Button variant="outline" as-child class="w-full">
+              <a
+                :href="result.trackViewUrl || result.collectionViewUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex w-full items-center justify-center"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              In iTunes ansehen
-            </a>
+                <svg
+                  class="mr-1 h-3 w-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                In iTunes ansehen
+              </a>
+            </Button>
+
+            <Button
+              @click="handleAddItem(result)"
+              :disabled="addingItems.has(result.trackId || result.collectionId)"
+              class="w-full"
+            >
+              {{
+                addingItems.has(result.trackId || result.collectionId)
+                  ? 'Wird hinzugefügt...'
+                  : 'Zur Sammlung hinzufügen'
+              }}
+            </Button>
           </CardAction>
         </Card>
       </div>
@@ -130,6 +148,7 @@
 import { ref } from 'vue'
 import { ofetch } from 'ofetch'
 import SearchBar from '@/components/itunes/SearchBar.vue'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -146,6 +165,7 @@ import type {
 const searchResults = ref<SearchResult[]>([])
 const loading = ref(false)
 const hasSearched = ref(false)
+const addingItems = ref<Set<number>>(new Set())
 
 async function handleSearch(payload: SearchParams) {
   const url = new URL('/api/itunes/search', window.location.origin)
@@ -162,6 +182,40 @@ async function handleSearch(payload: SearchParams) {
     return
   } finally {
     loading.value = false
+  }
+}
+
+function handleClear() {
+  searchResults.value = []
+  hasSearched.value = false
+}
+
+async function handleAddItem(result: SearchResult) {
+  const itunesId = result.trackId || result.collectionId
+  if (!itunesId || addingItems.value.has(itunesId)) {
+    return
+  }
+
+  try {
+    addingItems.value.add(itunesId)
+
+    const response = await ofetch('/api/itunes/add', {
+      method: 'POST',
+      body: {
+        itunesId,
+        isCollection: !!result.collectionId && !result.trackId,
+      },
+    })
+
+    if (response.success) {
+      // Show success feedback - you might want to add a toast notification here
+      console.log('Item added successfully:', response.mediaItemId)
+    }
+  } catch (error) {
+    console.error('Error adding item:', error)
+    // Show error feedback - you might want to add a toast notification here
+  } finally {
+    addingItems.value.delete(itunesId)
   }
 }
 
