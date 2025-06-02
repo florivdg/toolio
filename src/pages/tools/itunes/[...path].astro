@@ -1,19 +1,15 @@
 ---
 import PageHeader from '@/components/PageHeader.astro'
-import { Button } from '@/components/ui/button'
 import App from '@/layouts/App.astro'
 import VueApp from './_app.vue'
 ---
 
 <App>
   <PageHeader title="iTunes Price Watcher">
-    <Fragment slot="actions">
-      <Button>Action</Button>
-      <Button variant="ghost">Secondary</Button>
-    </Fragment>
+    <Fragment slot="actions"> </Fragment>
   </PageHeader>
 
   <div class="mt-8">
-    <VueApp client:load />
+    <VueApp client:only />
   </div>
 </App>
