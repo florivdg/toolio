@@ -33,6 +33,9 @@ DB_FILE_NAME=/data/sqlite.db
 # Authentication secret (generate a strong random string)
 BETTER_AUTH_SECRET=your-very-secure-secret-key
 
+# Notification API key (required for notification services)
+NOTI_API_KEY=your-notification-api-key
+
 # Traefik configuration
 TRAEFIK_DNS=toolio
 ```
@@ -52,9 +55,25 @@ cd /srv/docker/toolio
 docker compose up -d
 ```
 
-This will pull the latest Toolio image and start the container with the configuration defined in the Docker Compose file.
+This will pull the latest Toolio image and start the container with the configuration defined in the Docker Compose file. The container will automatically start both the web application and a cron daemon for scheduled tasks.
 
-### 5. Run Database Migrations
+### 5. Configure Automatic Price Updates (Optional)
+
+Toolio includes automatic iTunes price updates that run every 6 hours. These are enabled by default when using Docker. To customize the cron schedule or server URL:
+
+1. Set the `SERVER_URL` environment variable in your Docker Compose file:
+
+   ```yaml
+   environment:
+     - SERVER_URL=https://your-domain.com # Use your actual domain
+   ```
+
+2. View cron logs to monitor price updates:
+   ```bash
+   docker compose exec astro tail -f /var/log/cron.log
+   ```
+
+### 6. Run Database Migrations
 
 After the container is running, run the database migrations:
 
@@ -64,7 +83,7 @@ docker compose exec astro bun run scripts/migrate.ts
 
 This command will set up the database schema needed for the application to work properly.
 
-### 6. Create Admin User
+### 7. Create Admin User
 
 Create your first admin user with the following command:
 

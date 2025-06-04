@@ -56,9 +56,9 @@ async function handleNav(path: string) {
       <MenubarContent>
         <MenubarItem @click="handleNav('/docs')"> Übersicht </MenubarItem>
         <MenubarSeparator />
-        <MenubarItem> API 1 </MenubarItem>
-        <MenubarItem> API 2 </MenubarItem>
-        <MenubarItem> API 3 </MenubarItem>
+        <MenubarItem @click="handleNav('/docs/itunes')">
+          iTunes Price Watcher
+        </MenubarItem>
       </MenubarContent>
     </MenubarMenu>
     <MenubarMenu>
@@ -66,9 +66,9 @@ async function handleNav(path: string) {
       <MenubarContent>
         <MenubarItem @click="handleNav('/tools')"> Übersicht </MenubarItem>
         <MenubarSeparator />
-        <MenubarItem> Tool 1 </MenubarItem>
-        <MenubarItem> Tool 2 </MenubarItem>
-        <MenubarItem> Tool 3 </MenubarItem>
+        <MenubarItem @click="handleNav('/tools/itunes')">
+          iTunes Price Watcher
+        </MenubarItem>
       </MenubarContent>
     </MenubarMenu>
     <MenubarMenu>

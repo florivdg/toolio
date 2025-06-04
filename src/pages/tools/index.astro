@@ -1,14 +1,64 @@
 ---
+import { getCollection } from 'astro:content'
 import PageHeader from '@/components/PageHeader.astro'
-import { Button } from '@/components/ui/button'
 import App from '@/layouts/App.astro'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+const toolsDocs = await getCollection('docs', (entry) => !entry.data.draft)
 ---
 
 <App>
   <PageHeader title="Tools">
-    <Fragment slot="actions">
-      <Button>Action</Button>
-      <Button variant="ghost">Secondary</Button>
+    <Fragment slot="description">
+      Entdecke alle verfügbaren Tools und deren Funktionen.
     </Fragment>
   </PageHeader>
+
+  <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {
+      toolsDocs.map((doc) => (
+        <a href={`/tools/${doc.id}`} class="block">
+          <Card class="h-full cursor-pointer transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>{doc.data.title}</CardTitle>
+              <CardDescription>{doc.data.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="flex flex-wrap gap-2">
+                {doc.data.tags &&
+                  doc.data.tags.map((tag) => (
+                    <Badge variant="outline">{tag}</Badge>
+                  ))}
+              </div>
+              <div class="mt-4">
+                <span class="text-primary inline-flex items-center text-sm font-medium">
+                  Tool öffnen
+                  <svg
+                    class="ml-1 h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </a>
+      ))
+    }
+  </div>
 </App>

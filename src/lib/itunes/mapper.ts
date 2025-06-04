@@ -7,6 +7,8 @@
  * It handles different entity types like movies, TV shows, music, etc.
  */
 
+import { mapCountryCode } from './helpers'
+
 /**
  * Determines the type of the iTunes item based on its properties
  *
@@ -149,7 +151,7 @@ export function mapItunesDataToMediaItem(itunesData: any) {
     primaryGenreName: itunesData.primaryGenreName,
     contentAdvisoryRating: itunesData.contentAdvisoryRating,
     description: itunesData.longDescription,
-    country: itunesData.country,
+    country: mapCountryCode(itunesData.country),
     currency: itunesData.currency,
     additionalData: JSON.stringify(additionalData),
   }
@@ -222,7 +224,7 @@ export function mapItunesDataToPriceHistory(
     standardPrice,
     hdPrice,
     currency: itunesData.currency,
-    country: itunesData.country,
+    country: mapCountryCode(itunesData.country),
     additionalPriceData:
       Object.keys(additionalPriceData).length > 0
         ? JSON.stringify(additionalPriceData)
