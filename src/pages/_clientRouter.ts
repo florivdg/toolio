@@ -8,7 +8,7 @@ if (!import.meta.env.SSR) {
     routes: [
       {
         path: '/tools/itunes',
-        redirect: '/tools/itunes/search',
+        redirect: '/tools/itunes/watchlist',
         children: [
           {
             path: 'search',
