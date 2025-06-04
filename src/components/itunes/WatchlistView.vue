@@ -26,71 +26,18 @@
       v-else
       class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
     >
-      <Card
+      <MediaCard
         v-for="item in watchlistItems"
         :key="item.id"
-        class="group border-border bg-card hover:shadow-primary/5 overflow-hidden border pt-0 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+        :title="item.name || ''"
+        :artist-name="item.artistName"
+        :artwork-url="getArtworkUrl(item)"
+        :media-type="getMediaTypeLabel(item)"
+        :price="getLatestPrice(item)"
+        :genre="item.primaryGenreName"
+        :release-date="item.releaseDate"
       >
-        <div class="bg-muted relative aspect-[2/3] overflow-hidden">
-          <img
-            :src="getArtworkUrl(item)"
-            :alt="item.name || 'Artwork'"
-            class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-            @error="handleImageError"
-            loading="lazy"
-          />
-
-          <!-- Media type badge -->
-          <div class="absolute top-2 right-2">
-            <span
-              class="inline-flex items-center rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm"
-            >
-              {{ getMediaTypeLabel(item) }}
-            </span>
-          </div>
-
-          <!-- Price overlay (if available from additional data) -->
-          <div v-if="getLatestPrice(item)" class="absolute bottom-2 left-2">
-            <span
-              class="bg-primary text-primary-foreground inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold"
-            >
-              {{ getLatestPrice(item) }}
-            </span>
-          </div>
-        </div>
-
-        <CardContent class="space-y-2 p-3">
-          <div class="space-y-1">
-            <CardTitle class="line-clamp-2 text-sm leading-tight font-semibold">
-              {{ item.name }}
-            </CardTitle>
-
-            <CardDescription
-              v-if="item.artistName"
-              class="text-muted-foreground line-clamp-1 text-xs"
-            >
-              {{ item.artistName }}
-            </CardDescription>
-          </div>
-
-          <div class="text-muted-foreground flex flex-wrap gap-1 text-xs">
-            <span
-              v-if="item.primaryGenreName"
-              class="bg-muted text-muted-foreground inline-flex items-center rounded px-2 py-0.5"
-            >
-              {{ item.primaryGenreName }}
-            </span>
-
-            <span
-              v-if="item.releaseDate"
-              class="bg-muted text-muted-foreground inline-flex items-center rounded px-2 py-0.5"
-            >
-              {{ formatDate(item.releaseDate.toString()) }}
-            </span>
-          </div>
-        </CardContent>
-
-        <CardAction class="mt-auto space-y-2 p-3 pt-0">
+        <template #actions>
           <Button v-if="item.viewUrl" variant="outline" as-child class="w-full">
             <a
               :href="item.viewUrl"
@@ -128,8 +75,8 @@
                 : 'Aus Watchlist entfernen'
             }}
           </Button>
-        </CardAction>
-      </Card>
+        </template>
+      </MediaCard>
     </div>
   </div>
 </template>
@@ -139,19 +86,13 @@ import { ref, onMounted } from 'vue'
 import { ofetch } from 'ofetch'
 import { Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-  CardAction,
-} from '@/components/ui/card'
+import MediaCard from '@/components/itunes/MediaCard.vue'
 import type {
   WatchlistResponse,
   RemoveItemResponse,
   ParsedWatchlistItem,
 } from '@/lib/itunes/watchlist'
-import { formatDate, formatPrice, handleImageError } from '@/lib/itunes/helpers'
+import { formatDate, formatPrice } from '@/lib/itunes/helpers'
 
 const watchlistItems = ref<ParsedWatchlistItem[]>([])
 const loading = ref(false)

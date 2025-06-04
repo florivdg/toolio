@@ -25,84 +25,24 @@
         v-else
         class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
       >
-        <Card
+        <MediaCard
           v-for="result in searchResults"
           :key="result.trackId || result.collectionId"
-          class="group border-border bg-card hover:shadow-primary/5 overflow-hidden border pt-0 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+          :title="result.trackName || result.collectionName || ''"
+          :artist-name="result.artistName"
+          :artwork-url="getArtworkUrl(result)"
+          :media-type="getMediaType(result)"
+          :price="getResultPrice(result)"
+          :genre="result.primaryGenreName"
+          :release-date="result.releaseDate"
         >
-          <div class="bg-muted relative aspect-[2/3] overflow-hidden">
-            <img
-              :src="getArtworkUrl(result)"
-              :alt="result.trackName || result.collectionName || 'Artwork'"
-              class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-              @error="handleImageError"
-              loading="lazy"
-            />
-
-            <!-- Media type badge -->
-            <div class="absolute top-2 right-2">
-              <span
-                class="inline-flex items-center rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm"
-              >
-                {{ getMediaType(result) }}
-              </span>
-            </div>
-
-            <!-- Price overlay -->
-            <div
-              v-if="result.trackPrice || result.collectionPrice"
-              class="absolute bottom-2 left-2"
+          <template #actions>
+            <Button
+              v-if="result.trackViewUrl || result.collectionViewUrl"
+              variant="outline"
+              as-child
+              class="w-full"
             >
-              <span
-                class="bg-primary text-primary-foreground inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold"
-              >
-                {{
-                  formatPrice(
-                    result.trackHdPrice || result.collectionHdPrice,
-                    result.currency,
-                  )
-                }}
-              </span>
-            </div>
-          </div>
-
-          <CardContent class="space-y-2 p-3">
-            <div class="space-y-1">
-              <CardTitle
-                class="line-clamp-2 text-sm leading-tight font-semibold"
-              >
-                {{ result.trackName || result.collectionName }}
-              </CardTitle>
-
-              <CardDescription
-                class="text-muted-foreground line-clamp-1 text-xs"
-              >
-                {{ result.artistName }}
-              </CardDescription>
-            </div>
-
-            <div class="text-muted-foreground flex flex-wrap gap-1 text-xs">
-              <span
-                v-if="result.primaryGenreName"
-                class="bg-muted text-muted-foreground inline-flex items-center rounded px-2 py-0.5"
-              >
-                {{ result.primaryGenreName }}
-              </span>
-
-              <span
-                v-if="result.releaseDate"
-                class="bg-muted text-muted-foreground inline-flex items-center rounded px-2 py-0.5"
-              >
-                {{ formatDate(result.releaseDate) }}
-              </span>
-            </div>
-          </CardContent>
-
-          <CardAction
-            v-if="result.trackViewUrl || result.collectionViewUrl"
-            class="mt-auto space-y-2 p-3 pt-0"
-          >
-            <Button variant="outline" as-child class="w-full">
               <a
                 :href="result.trackViewUrl || result.collectionViewUrl"
                 target="_blank"
@@ -137,8 +77,8 @@
                   : 'Zur Sammlung hinzufügen'
               }}
             </Button>
-          </CardAction>
-        </Card>
+          </template>
+        </MediaCard>
       </div>
     </div>
   </div>
@@ -148,14 +88,8 @@
 import { ref } from 'vue'
 import { ofetch } from 'ofetch'
 import SearchBar from '@/components/itunes/SearchBar.vue'
+import MediaCard from '@/components/itunes/MediaCard.vue'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-  CardAction,
-} from '@/components/ui/card'
 import type {
   SearchResult,
   SearchParams,
@@ -179,6 +113,20 @@ function getItunesId(result: SearchResult): number {
   if (typeof result.trackId === 'number') return result.trackId
   if (typeof result.collectionId === 'number') return result.collectionId
   throw new Error('Kein gültiger iTunes-Identifier gefunden.')
+}
+
+function getResultPrice(result: SearchResult): string | null {
+  if (result.trackPrice || result.collectionPrice) {
+    const price =
+      result.trackHdPrice ||
+      result.collectionHdPrice ||
+      result.trackPrice ||
+      result.collectionPrice
+    if (price && result.currency) {
+      return formatPrice(price, result.currency)
+    }
+  }
+  return null
 }
 
 async function handleSearch(payload: SearchParams) {
