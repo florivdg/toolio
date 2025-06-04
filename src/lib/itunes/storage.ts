@@ -124,3 +124,84 @@ export async function savePriceHistory(
   // Insert price history
   db.insert(itunesPriceHistory).values(priceData).run()
 }
+
+/**
+ * Update prices for all stored media items
+ *
+ * This function fetches all stored iTunes media items, looks up their current
+ * prices in the iTunes Store, and saves new price history entries.
+ *
+ * @returns Summary of the update process including success/error counts
+ */
+export async function updateAllMediaItemPrices(): Promise<{
+  total: number
+  updated: number
+  errors: number
+  errorDetails: Array<{ mediaItemId: string; itunesId: number; error: string }>
+}> {
+  // Get all stored media items
+  const mediaItems = db
+    .select({
+      id: itunesMediaItem.id,
+      itunesId: itunesMediaItem.itunesId,
+      itunesIdType: itunesMediaItem.itunesIdType,
+      country: itunesMediaItem.country,
+      name: itunesMediaItem.name,
+    })
+    .from(itunesMediaItem)
+    .all()
+
+  const total = mediaItems.length
+  let updated = 0
+  let errors = 0
+  const errorDetails: Array<{
+    mediaItemId: string
+    itunesId: number
+    error: string
+  }> = []
+
+  // Process each media item
+  for (const item of mediaItems) {
+    try {
+      // Use the appropriate lookup function based on item type
+      // Always use "de" as country for lookups, regardless of stored country
+      const lookupResponse =
+        item.itunesIdType === 'collection'
+          ? await lookupCollection(item.itunesId, 'de')
+          : await lookupTrack(item.itunesId, 'de')
+
+      if (lookupResponse.resultCount === 0) {
+        errors++
+        errorDetails.push({
+          mediaItemId: item.id,
+          itunesId: item.itunesId,
+          error: 'Item not found in iTunes store',
+        })
+        continue
+      }
+
+      // Get the first result (should be the item we want)
+      const itunesData = lookupResponse.results[0]
+
+      // Save new price history entry
+      await savePriceHistory(item.id, itunesData)
+      updated++
+    } catch (error) {
+      errors++
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      errorDetails.push({
+        mediaItemId: item.id,
+        itunesId: item.itunesId,
+        error: errorMessage,
+      })
+    }
+  }
+
+  return {
+    total,
+    updated,
+    errors,
+    errorDetails,
+  }
+}

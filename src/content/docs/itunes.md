@@ -10,11 +10,12 @@ The iTunes Tool provides comprehensive integration with Apple's iTunes Store API
 
 ## Overview
 
-This tool consists of three main components:
+This tool consists of four main components:
 
 - **Search API**: Find iTunes content by search terms
 - **Add API**: Store iTunes items in your local database for tracking
 - **List API**: Retrieve stored iTunes items with optional price history
+- **Update API**: Update current prices for all stored items automatically
 
 ## Features
 
@@ -38,6 +39,13 @@ This tool consists of three main components:
 - Search by artist name, title, genre, media type
 - Optional price history inclusion
 - Pagination support for large collections
+
+### 🔄 Automated Price Updates
+
+- Update all stored items' prices in a single request
+- Designed for cronjob automation and manual updates
+- Detailed success/error reporting for each item
+- Robust error handling for unavailable items
 
 ## API Endpoints
 
@@ -236,6 +244,72 @@ GET /api/itunes/list?artistName=nolan&mediaType=movie&withPrices=true&limit=10
 }
 ```
 
+### Update All Prices
+
+Update current prices for all stored iTunes media items by fetching fresh data from the iTunes Store API.
+
+**Endpoint:** `GET /api/itunes/update-prices`
+
+This endpoint is designed for automated price tracking and can be called:
+
+- Manually via UI (für manuelle Aktualisierung)
+- Via cronjob for scheduled updates (für automatische Aktualisierung)
+
+#### Response Format
+
+```json
+{
+  "success": true,
+  "message": "Preise erfolgreich aktualisiert",
+  "data": {
+    "total": 50,
+    "updated": 48,
+    "errors": 2,
+    "errorDetails": [
+      {
+        "mediaItemId": "550e8400-e29b-41d4-a716-446655440000",
+        "itunesId": 400763833,
+        "error": "Item not found in iTunes store"
+      },
+      {
+        "mediaItemId": "660e8400-e29b-41d4-a716-446655440001",
+        "itunesId": 400763834,
+        "error": "Network timeout"
+      }
+    ]
+  }
+}
+```
+
+#### Success Response Fields
+
+| Field          | Type   | Description                           |
+| -------------- | ------ | ------------------------------------- |
+| `total`        | number | Total number of stored media items    |
+| `updated`      | number | Number of items successfully updated  |
+| `errors`       | number | Number of items that failed to update |
+| `errorDetails` | array  | Details about failed updates          |
+
+#### Error Response
+
+```json
+{
+  "success": false,
+  "message": "Fehler beim Aktualisieren der Preise",
+  "error": "Database connection failed"
+}
+```
+
+#### Usage Examples
+
+```bash
+# Update all prices manually
+GET /api/itunes/update-prices
+
+# Use in a cronjob for automated updates
+# 0 */6 * * * curl -X GET https://your-domain.com/api/itunes/update-prices
+```
+
 ## Data Models
 
 ### Media Item
@@ -319,4 +393,14 @@ GET /api/itunes/list?artistName=nolan&mediaType=movie
 
 # Get paginated results
 GET /api/itunes/list?limit=50&offset=100
+```
+
+### Update All Prices
+
+```bash
+# Manually update all stored item prices
+GET /api/itunes/update-prices
+
+# Set up automated updates via cronjob (every 6 hours)
+# 0 */6 * * * curl -X GET https://your-domain.com/api/itunes/update-prices
 ```

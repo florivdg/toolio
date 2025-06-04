@@ -126,3 +126,14 @@ export function handleImageError(event: Event): void {
   const img = event.target as HTMLImageElement
   img.src = '/placeholder-image.svg'
 }
+
+/**
+ * Map iTunes API country codes to iTunes lookup API country codes
+ * Only implements mapping for German stores, fallback to "de" for all others
+ *
+ * @param countryCode The country code from iTunes API response (unused)
+ * @returns The country code for iTunes lookup API (always "de")
+ */
+export function mapCountryCode(countryCode: string | undefined): string {
+  return 'de'
+}
