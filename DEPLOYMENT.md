@@ -33,6 +33,9 @@ DB_FILE_NAME=/data/sqlite.db
 # Authentication secret (generate a strong random string)
 BETTER_AUTH_SECRET=your-very-secure-secret-key
 
+# Notification API key (required for notification services)
+NOTI_API_KEY=your-notification-api-key
+
 # Traefik configuration
 TRAEFIK_DNS=toolio
 ```
