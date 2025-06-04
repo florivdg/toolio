@@ -8,6 +8,7 @@ import { itunesMediaItem, itunesPriceHistory } from '@/db/schema/itunes'
 import { eq, desc } from 'drizzle-orm'
 import { lookupTrack, lookupCollection } from './lookup'
 import { mapItunesDataToMediaItem, mapItunesDataToPriceHistory } from './mapper'
+import { sendNotification } from '@/lib/notifications'
 
 /**
  * Lookup and store an iTunes item by its ID
@@ -166,6 +167,60 @@ function hasPriceChanged(newPriceData: any, latestPriceData: any): boolean {
 }
 
 /**
+ * Check if any price has dropped compared to the latest price data
+ *
+ * @param newPriceData The new price data
+ * @param latestPriceData The latest stored price data
+ * @returns Object indicating if prices dropped and which prices dropped
+ */
+function hasPriceDropped(
+  newPriceData: any,
+  latestPriceData: any,
+): {
+  dropped: boolean
+  standardPriceDropped: boolean
+  hdPriceDropped: boolean
+  oldStandardPrice?: number
+  newStandardPrice?: number
+  oldHdPrice?: number
+  newHdPrice?: number
+} {
+  let dropped = false
+  let standardPriceDropped = false
+  let hdPriceDropped = false
+
+  // Check standard price drop
+  const oldStandardPrice = latestPriceData.standardPrice
+  const newStandardPrice = newPriceData.standardPrice
+  if (
+    oldStandardPrice != null &&
+    newStandardPrice != null &&
+    newStandardPrice < oldStandardPrice
+  ) {
+    dropped = true
+    standardPriceDropped = true
+  }
+
+  // Check HD price drop
+  const oldHdPrice = latestPriceData.hdPrice
+  const newHdPrice = newPriceData.hdPrice
+  if (oldHdPrice != null && newHdPrice != null && newHdPrice < oldHdPrice) {
+    dropped = true
+    hdPriceDropped = true
+  }
+
+  return {
+    dropped,
+    standardPriceDropped,
+    hdPriceDropped,
+    oldStandardPrice,
+    newStandardPrice,
+    oldHdPrice,
+    newHdPrice,
+  }
+}
+
+/**
  * Save a price history entry for an iTunes media item
  * Only saves if the price has changed from the last recorded price
  *
@@ -222,6 +277,9 @@ export async function updateAllMediaItemPrices(): Promise<{
       itunesIdType: itunesMediaItem.itunesIdType,
       country: itunesMediaItem.country,
       name: itunesMediaItem.name,
+      artistName: itunesMediaItem.artistName,
+      viewUrl: itunesMediaItem.viewUrl,
+      currency: itunesMediaItem.currency,
     })
     .from(itunesMediaItem)
     .all()
@@ -258,6 +316,51 @@ export async function updateAllMediaItemPrices(): Promise<{
 
       // Get the first result (should be the item we want)
       const itunesData = lookupResponse.results[0]
+
+      // Get the latest price history to check for price drops
+      const latestPriceHistory = getLatestPriceHistory(item.id)
+
+      // Map iTunes data to our price history schema
+      const newPriceData = mapItunesDataToPriceHistory(itunesData, item.id)
+
+      // Check for price drops before saving new price
+      if (latestPriceHistory) {
+        const priceDropInfo = hasPriceDropped(newPriceData, latestPriceHistory)
+
+        if (priceDropInfo.dropped) {
+          // Send notification for price drop
+          try {
+            let priceInfo = ''
+            if (
+              priceDropInfo.standardPriceDropped &&
+              priceDropInfo.hdPriceDropped
+            ) {
+              priceInfo = `Standardpreis: ${priceDropInfo.oldStandardPrice}€ → ${priceDropInfo.newStandardPrice}€\nHD-Preis: ${priceDropInfo.oldHdPrice}€ → ${priceDropInfo.newHdPrice}€`
+            } else if (priceDropInfo.standardPriceDropped) {
+              priceInfo = `Preis: ${priceDropInfo.oldStandardPrice}€ → ${priceDropInfo.newStandardPrice}€`
+            } else if (priceDropInfo.hdPriceDropped) {
+              priceInfo = `HD-Preis: ${priceDropInfo.oldHdPrice}€ → ${priceDropInfo.newHdPrice}€`
+            }
+
+            const itemName = item.artistName
+              ? `${item.artistName} - ${item.name}`
+              : item.name
+            const itunesLink =
+              item.viewUrl ||
+              `https://music.apple.com/de/album/id${item.itunesId}`
+
+            const message = `🤑🤑🤑 Preissenkung bei "${itemName}"!\n\n${priceInfo}\n\n${itunesLink}`
+
+            await sendNotification(message)
+          } catch (notificationError) {
+            console.error(
+              'Failed to send price drop notification:',
+              notificationError,
+            )
+            // Don't fail the entire update process due to notification errors
+          }
+        }
+      }
 
       // Save new price history entry only if price changed
       const priceChanged = await savePriceHistory(item.id, itunesData)
