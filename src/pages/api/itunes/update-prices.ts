@@ -13,6 +13,7 @@ export const GET: APIRoute = async () => {
         data: {
           total: result.total,
           updated: result.updated,
+          unchanged: result.unchanged,
           errors: result.errors,
           errorDetails: result.errorDetails,
         },

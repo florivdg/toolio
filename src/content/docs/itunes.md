@@ -263,7 +263,8 @@ This endpoint is designed for automated price tracking and can be called:
   "message": "Preise erfolgreich aktualisiert",
   "data": {
     "total": 50,
-    "updated": 48,
+    "updated": 12,
+    "unchanged": 36,
     "errors": 2,
     "errorDetails": [
       {
@@ -286,7 +287,8 @@ This endpoint is designed for automated price tracking and can be called:
 | Field          | Type   | Description                           |
 | -------------- | ------ | ------------------------------------- |
 | `total`        | number | Total number of stored media items    |
-| `updated`      | number | Number of items successfully updated  |
+| `updated`      | number | Number of items with price changes    |
+| `unchanged`    | number | Number of items with no price changes |
 | `errors`       | number | Number of items that failed to update |
 | `errorDetails` | array  | Details about failed updates          |
 
