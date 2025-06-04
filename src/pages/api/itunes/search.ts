@@ -11,17 +11,25 @@ const queryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(200).default(20),
 })
 
+export type SearchParams = z.infer<typeof queryParamsSchema>
+
 export const GET: APIRoute = async ({ url }) => {
   try {
     // Parse and validate query parameters
     const params = Object.fromEntries(url.searchParams.entries())
     const validated = queryParamsSchema.parse(params)
 
+    // Automatically set entity to "tvSeason" when media is "tvShow"
+    let entity = validated.entity
+    if (validated.media === 'tvShow' && !entity) {
+      entity = 'tvSeason'
+    }
+
     // Call the iTunes search API
     const searchResponse: SearchResponse = await search({
       term: validated.term,
       media: validated.media,
-      entity: validated.entity,
+      entity: entity,
       country: validated.country,
       limit: validated.limit,
     })

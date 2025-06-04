@@ -7,7 +7,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const currentPath = url.pathname
 
   // List of public paths that don't require authentication
-  const publicPaths = ['/sign-in', '/api/auth']
+  const publicPaths = ['/sign-in', '/api/auth', '/api/itunes/update-prices']
 
   // Check if the current path is a public path
   const isPublicPath = publicPaths.some(

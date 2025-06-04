@@ -13,7 +13,7 @@ export default defineConfig({
 
   output: 'server',
 
-  integrations: [vue()],
+  integrations: [vue({ appEntrypoint: '@/pages/_app.ts' })],
 
   vite: {
     plugins: [tailwindcss()],

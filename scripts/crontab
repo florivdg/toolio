@@ -1,0 +1,5 @@
+# Toolio iTunes Price Update Cron Jobs
+# Update prices every 6 hours at minutes 0 (00:00, 06:00, 12:00, 18:00)
+0 */6 * * * /app/scripts/update-prices-cron.sh >> /var/log/cron.log 2>&1
+
+# Add a blank line at the end (required by cron)

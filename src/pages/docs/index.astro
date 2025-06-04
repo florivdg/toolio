@@ -1,14 +1,53 @@
 ---
+import { getCollection } from 'astro:content'
 import App from '@/layouts/App.astro'
 import PageHeader from '@/components/PageHeader.astro'
-import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+const docs = await getCollection('docs', (entry) => !entry.data.draft)
 ---
 
 <App>
   <PageHeader title="Dokumentation">
-    <Fragment slot="actions">
-      <Button>Action</Button>
-      <Button variant="ghost">Secondary</Button>
+    <Fragment slot="description">
+      Entdecke die verfügbare Dokumentation für alle Tools und APIs.
     </Fragment>
   </PageHeader>
+
+  <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {
+      docs.map((doc) => (
+        <a href={`/docs/${doc.id}`} class="block">
+          <Card class="h-full cursor-pointer transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>{doc.data.title || doc.id}</CardTitle>
+              {doc.data.description && (
+                <CardDescription>{doc.data.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div class="flex flex-wrap gap-2">
+                {doc.data.tags &&
+                  doc.data.tags.map((tag) => (
+                    <Badge variant="outline">{tag}</Badge>
+                  ))}
+              </div>
+              {doc.data.createdAt && (
+                <p class="text-muted-foreground mt-4 text-sm">
+                  Erstellt: {doc.data.createdAt.toLocaleDateString('de-DE')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </a>
+      ))
+    }
+  </div>
 </App>
