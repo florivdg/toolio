@@ -61,7 +61,10 @@
       </div>
     </CardContent>
 
-    <CardAction v-if="$slots.actions" class="mt-auto space-y-2 p-3 pt-0">
+    <CardAction
+      v-if="$slots.actions"
+      class="mx-auto mt-auto space-y-2 p-3 pt-0"
+    >
       <slot name="actions" />
     </CardAction>
   </Card>

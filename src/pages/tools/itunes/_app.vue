@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 </script>
 
 <template>
-  <div class="grid grid-cols-[auto_1fr] gap-4">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-[auto_1fr]">
     <nav data-allow-mismatch class="flex grow-0 flex-col gap-2">
       <router-link
         to="/tools/itunes/search"
