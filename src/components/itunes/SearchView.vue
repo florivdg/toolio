@@ -87,6 +87,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ofetch } from 'ofetch'
+import { toast } from 'vue-sonner'
+import { useRouter } from 'vue-router'
 import SearchBar from '@/components/itunes/SearchBar.vue'
 import MediaCard from '@/components/itunes/MediaCard.vue'
 import { Button } from '@/components/ui/button'
@@ -103,6 +105,7 @@ import {
   handleImageError,
 } from '@/lib/itunes/helpers'
 
+const router = useRouter()
 const searchResults = ref<SearchResult[]>([])
 const loading = ref(false)
 const hasSearched = ref(false)
@@ -176,12 +179,22 @@ async function handleAddItem(result: SearchResult) {
     })
 
     if (response.success) {
-      // Show success feedback - you might want to add a toast notification here
-      console.log('Item added successfully:', response.mediaItemId)
+      // Show success toast notification
+      toast('Element hinzugefügt', {
+        description: `${result.trackName || result.collectionName} wurde zur Watchlist hinzugefügt`,
+        action: {
+          label: 'Zur Watchlist',
+          onClick: () => router.push('/tools/itunes/watchlist'),
+        },
+      })
     }
   } catch (error) {
     console.error('Error adding item:', error)
-    // Show error feedback - you might want to add a toast notification here
+    // Show error toast notification
+    toast('Fehler', {
+      description: 'Element konnte nicht hinzugefügt werden',
+      variant: 'destructive',
+    })
   } finally {
     addingItems.value.delete(itunesId)
   }

@@ -103,6 +103,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ofetch } from 'ofetch'
+import { toast } from 'vue-sonner'
 import { Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import MediaCard from '@/components/itunes/MediaCard.vue'
@@ -269,9 +270,19 @@ async function handleRemoveItem(item: ParsedWatchlistItem) {
       watchlistItems.value = watchlistItems.value.filter(
         (watchlistItem) => watchlistItem.id !== item.id,
       )
-      console.log('Item removed successfully:', response.removedItemId)
+
+      // Show success toast notification
+      toast('Element entfernt', {
+        description: `${item.name || 'Eintrag'} wurde aus der Watchlist entfernt`,
+      })
     } else {
       console.error('Failed to remove item:', response.message)
+
+      // Show error toast notification
+      toast('Fehler', {
+        description: 'Element konnte nicht entfernt werden',
+        variant: 'destructive',
+      })
     }
   } catch (error) {
     console.error('Error removing item:', error)
