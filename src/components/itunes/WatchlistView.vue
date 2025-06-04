@@ -62,19 +62,38 @@
             </a>
           </Button>
 
-          <Button
-            @click="handleRemoveItem(item)"
-            :disabled="removingItems.has(item.id)"
-            variant="destructive"
-            class="w-full"
-          >
-            <Trash2 class="mr-1 h-3 w-3" />
-            {{
-              removingItems.has(item.id)
-                ? 'Wird entfernt...'
-                : 'Aus Watchlist entfernen'
-            }}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                class="w-full"
+                :disabled="removingItems.has(item.id)"
+              >
+                <Trash2 class="mr-1 h-3 w-3" />
+                {{
+                  removingItems.has(item.id)
+                    ? 'Wird entfernt...'
+                    : 'Aus Watchlist entfernen'
+                }}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Element entfernen</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Sind Sie sicher, dass Sie "{{
+                    item.name || 'diesen Eintrag'
+                  }}" aus Ihrer Watchlist entfernen möchten?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction @click="handleRemoveItem(item)">
+                  Ja, entfernen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </template>
       </MediaCard>
     </div>
@@ -87,6 +106,17 @@ import { ofetch } from 'ofetch'
 import { Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import MediaCard from '@/components/itunes/MediaCard.vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import type {
   WatchlistResponse,
   RemoveItemResponse,
