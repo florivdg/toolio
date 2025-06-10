@@ -59,6 +59,9 @@ async function handleNav(path: string) {
         <MenubarItem @click="handleNav('/docs/itunes')">
           iTunes Price Watcher
         </MenubarItem>
+        <MenubarItem @click="handleNav('/docs/wishlists')">
+          Wishlists
+        </MenubarItem>
       </MenubarContent>
     </MenubarMenu>
     <MenubarMenu>
@@ -68,6 +71,9 @@ async function handleNav(path: string) {
         <MenubarSeparator />
         <MenubarItem @click="handleNav('/tools/itunes')">
           iTunes Price Watcher
+        </MenubarItem>
+        <MenubarItem @click="handleNav('/tools/wishlists')">
+          Wishlists
         </MenubarItem>
       </MenubarContent>
     </MenubarMenu>
