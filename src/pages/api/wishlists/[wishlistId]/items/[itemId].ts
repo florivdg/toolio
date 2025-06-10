@@ -14,6 +14,13 @@ const pathParamsSchema = z.object({
   itemId: z.string().uuid(),
 })
 
+// Schema for partial updates - all fields optional except id, wishlistId, createdAt
+const wishlistItemUpdateSchema = wishlistItemSchema.partial().omit({
+  id: true,
+  wishlistId: true,
+  createdAt: true,
+})
+
 // GET - Get a specific wishlist item
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -148,7 +155,28 @@ export const PUT: APIRoute = async ({ params, request }) => {
 
     // Parse and validate the request body
     const body = await request.json()
-    const validated = wishlistItemSchema.parse(body)
+    const validated = wishlistItemUpdateSchema.parse(body)
+
+    // Check if at least one field is provided for update
+    const providedFields = Object.keys(validated).filter(
+      (key) => validated[key as keyof typeof validated] !== undefined,
+    )
+
+    if (providedFields.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message:
+            'Mindestens ein Feld muss für die Aktualisierung angegeben werden',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+    }
 
     // Check if wishlist item exists
     const existingItem = db
@@ -177,13 +205,21 @@ export const PUT: APIRoute = async ({ params, request }) => {
       )
     }
 
+    // Only update fields that were provided in the request
+    const updateData = {
+      ...validated,
+      updatedAt: new Date(),
+    }
+
+    // Remove undefined values to avoid updating with null
+    const cleanUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined),
+    )
+
     // Update wishlist item in database
     const updatedItem = db
       .update(wishlistItems)
-      .set({
-        ...validated,
-        updatedAt: new Date(),
-      })
+      .set(cleanUpdateData)
       .where(
         and(
           eq(wishlistItems.id, itemId),
