@@ -25,6 +25,10 @@ This app itself is built with Astro using Vue.js components, Tailwind CSS 4 for 
 
 Every user facing text is written in German.
 
+### Authentication
+
+Auth to all routes is handled using `better-auth` in the Astro middleware.
+
 ### Tool Structure
 
 Each tool should follow this pattern:
