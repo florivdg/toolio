@@ -11,24 +11,8 @@ const queryParamsSchema = z.object({
 })
 
 // GET - List all wishlists
-export const GET: APIRoute = async ({ url, locals }) => {
+export const GET: APIRoute = async ({ url }) => {
   try {
-    // Check authentication
-    if (!locals.user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Authentifizierung erforderlich',
-        }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
     // Parse and validate query parameters
     const params = Object.fromEntries(url.searchParams.entries())
     const { limit, offset } = queryParamsSchema.parse(params)
@@ -104,24 +88,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
 }
 
 // POST - Create a new wishlist
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
-    // Check authentication
-    if (!locals.user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Authentifizierung erforderlich',
-        }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
     // Parse and validate the request body
     const body = await request.json()
     const validated = wishlistSchema.parse(body)

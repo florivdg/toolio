@@ -15,24 +15,8 @@ const pathParamsSchema = z.object({
 })
 
 // GET - Get a specific wishlist item
-export const GET: APIRoute = async ({ params, locals }) => {
+export const GET: APIRoute = async ({ params }) => {
   try {
-    // Check authentication
-    if (!locals.user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Authentifizierung erforderlich',
-        }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
     // Validate path parameters
     const { wishlistId, itemId } = pathParamsSchema.parse(params)
 
@@ -135,24 +119,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
 }
 
 // PUT - Update a specific wishlist item
-export const PUT: APIRoute = async ({ params, request, locals }) => {
+export const PUT: APIRoute = async ({ params, request }) => {
   try {
-    // Check authentication
-    if (!locals.user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Authentifizierung erforderlich',
-        }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
     // Validate path parameters
     const { wishlistId, itemId } = pathParamsSchema.parse(params)
 
@@ -276,24 +244,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 }
 
 // DELETE - Delete a specific wishlist item
-export const DELETE: APIRoute = async ({ params, locals }) => {
+export const DELETE: APIRoute = async ({ params }) => {
   try {
-    // Check authentication
-    if (!locals.user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Authentifizierung erforderlich',
-        }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
     // Validate path parameters
     const { wishlistId, itemId } = pathParamsSchema.parse(params)
 

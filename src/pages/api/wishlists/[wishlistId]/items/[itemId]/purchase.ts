@@ -16,24 +16,8 @@ const pathParamsSchema = z.object({
 })
 
 // PATCH - Update purchase status of a wishlist item
-export const PATCH: APIRoute = async ({ params, request, locals }) => {
+export const PATCH: APIRoute = async ({ params, request }) => {
   try {
-    // Check authentication
-    if (!locals.user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Authentifizierung erforderlich',
-        }),
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
     // Validate path parameters
     const { wishlistId, itemId } = pathParamsSchema.parse(params)
 
