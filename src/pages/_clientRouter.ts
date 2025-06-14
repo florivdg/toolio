@@ -20,6 +20,20 @@ if (!import.meta.env.SSR) {
           },
         ],
       },
+      {
+        path: '/tools/wishlists',
+        children: [
+          {
+            path: '',
+            component: () => import('@/components/wishlists/WishlistsView.vue'),
+          },
+          {
+            path: ':id',
+            component: () =>
+              import('@/components/wishlists/WishlistItemsView.vue'),
+          },
+        ],
+      },
     ],
   })
 }

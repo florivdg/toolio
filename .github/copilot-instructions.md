@@ -1,7 +1,5 @@
 Toolio is a collection of tools that always have an API endpoint, a Vue.js component as the frontend for that tool leveraging the API, and a documentation file associated with it in Markdown format.
 
-This app itself is built with Astro using Vue.js components, Tailwind CSS 4 for styling, and TypeScript for type safety. Drizzle is used as the ORM for SQLite database interactions, zod for schema validation. It uses better-auth for authentication and authorization, and uses shadcn-vue (reka-ui) for the UI components.
-
 ## Project Structure
 
 - **API endpoints** are stored within `/src/pages/api/` and are organized by tool (e.g., `/src/pages/api/itunes/`)
@@ -13,10 +11,10 @@ This app itself is built with Astro using Vue.js components, Tailwind CSS 4 for 
 ## Key Technologies & Libraries
 
 - **Framework**: Astro with Vue.js integration
+- **UI Components**: shadcn-vue (based on reka-ui, a Vue port of Radix UI)
 - **Styling**: Tailwind CSS 4 with custom design tokens
 - **Database**: SQLite with Drizzle ORM
 - **Authentication**: better-auth with email/password provider
-- **UI Components**: shadcn-vue (based on reka-ui, a Vue port of Radix UI)
 - **Validation**: Zod schemas
 - **Runtime**: Bun for package management and runtime
 - **Deployment**: Docker
@@ -24,6 +22,10 @@ This app itself is built with Astro using Vue.js components, Tailwind CSS 4 for 
 ## Architecture Patterns
 
 Every user facing text is written in German.
+
+### Authentication
+
+Auth to all routes is handled using `better-auth` in the Astro middleware.
 
 ### Tool Structure
 
@@ -50,11 +52,19 @@ Each tool should follow this pattern:
 - Custom components in `/src/components/`
 - Layout components in `/src/layouts/`
 
-## Coding Standards
+## Coding Best Practices
 
-- Use TypeScript for all code
-- Validate API inputs with Zod schemas
-- Follow the existing middleware pattern for authentication
 - Use the established utility functions (e.g., `cn()` for class merging)
 - Organize imports using the `@/` path alias
 - Follow the existing CSS custom properties pattern for theming
+
+## Tool Usage
+
+- Use the `context7` tool for getting information about various libraries
+
+## Scripts
+
+- `bun --bun run dev`: Start the development server
+- `bun --bun run build`: Build the project for production
+- `bun run lint`: Run the linter
+- Do not run any database scripts
