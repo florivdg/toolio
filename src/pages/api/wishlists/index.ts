@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro'
 import { z } from 'zod'
 import { db } from '@/db/database'
-import { wishlists, wishlistSchema } from '@/db/schema/wishlists'
-import { desc } from 'drizzle-orm'
+import { wishlists, wishlistItems, wishlistSchema } from '@/db/schema/wishlists'
+import { desc, count, eq } from 'drizzle-orm'
 
 // Schema for query parameters
 const queryParamsSchema = z.object({
@@ -17,14 +17,45 @@ export const GET: APIRoute = async ({ url }) => {
     const params = Object.fromEntries(url.searchParams.entries())
     const { limit, offset } = queryParamsSchema.parse(params)
 
-    // Fetch wishlists from database
+    // Fetch wishlists with item counts from database
     const wishlistsData = db
-      .select()
+      .select({
+        id: wishlists.id,
+        name: wishlists.name,
+        description: wishlists.description,
+        createdAt: wishlists.createdAt,
+        updatedAt: wishlists.updatedAt,
+        itemCount: count(wishlistItems.id),
+      })
       .from(wishlists)
+      .leftJoin(wishlistItems, eq(wishlists.id, wishlistItems.wishlistId))
+      .groupBy(wishlists.id)
       .orderBy(desc(wishlists.createdAt))
       .limit(limit)
       .offset(offset)
       .all()
+
+    // Fetch latest 3 items for each wishlist
+    const wishlistsWithItems = wishlistsData.map((wishlist) => {
+      const latestItems = db
+        .select({
+          id: wishlistItems.id,
+          name: wishlistItems.name,
+          imageUrl: wishlistItems.imageUrl,
+          url: wishlistItems.url,
+          price: wishlistItems.price,
+        })
+        .from(wishlistItems)
+        .where(eq(wishlistItems.wishlistId, wishlist.id))
+        .orderBy(desc(wishlistItems.createdAt))
+        .limit(3)
+        .all()
+
+      return {
+        ...wishlist,
+        latestItems,
+      }
+    })
 
     // Get total count for pagination
     const totalCount = db
@@ -35,7 +66,7 @@ export const GET: APIRoute = async ({ url }) => {
     return new Response(
       JSON.stringify({
         success: true,
-        data: wishlistsData,
+        data: wishlistsWithItems,
         pagination: {
           limit,
           offset,
