@@ -8,7 +8,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun run scripts/migrate.ts"
+    "db:migrate": "bun run scripts/migrate.ts",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@astrojs/node": "9.2.2",
