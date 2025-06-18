@@ -211,7 +211,8 @@ export const PUT: APIRoute = async ({ params, request }) => {
       updatedAt: new Date(),
     }
 
-    // Remove undefined values to avoid updating with null
+    // Remove undefined values to avoid updating with undefined, but keep null values
+    // to allow clearing fields
     const cleanUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined),
     )

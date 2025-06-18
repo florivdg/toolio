@@ -61,12 +61,12 @@ interface WishlistItem {
 
 interface UpdateWishlistItemRequest {
   name: string
-  description?: string
-  price?: number
+  description?: string | null
+  price?: number | null
   url: string
-  imageUrl?: string
+  imageUrl?: string | null
   priority?: number
-  notes?: string
+  notes?: string | null
 }
 
 interface UpdateWishlistItemResponse {
@@ -175,12 +175,12 @@ const handleSubmit = async () => {
 
     const requestData: UpdateWishlistItemRequest = {
       name: formData.name.trim(),
-      description: formData.description.trim() || undefined,
-      price: formData.price ? parseFloat(formData.price) : undefined,
+      description: formData.description.trim() || null,
+      price: formData.price ? parseFloat(formData.price) : null,
       url: formData.url.trim(),
-      imageUrl: formData.imageUrl.trim() || undefined,
+      imageUrl: formData.imageUrl.trim() || null,
       priority: parseInt(formData.priority),
-      notes: formData.notes.trim() || undefined,
+      notes: formData.notes.trim() || null,
     }
 
     const response = await fetch(
