@@ -113,6 +113,10 @@ watch(
   () => props.modelValue,
   (newValue) => {
     isOpen.value = newValue
+    if (newValue) {
+      // Populate form when modal opens
+      populateForm()
+    }
   },
 )
 
@@ -132,11 +136,13 @@ watch(
       populateForm()
     }
   },
-  { deep: true },
+  { deep: true, immediate: true },
 )
 
 // Populate form with current item data
 const populateForm = () => {
+  if (!props.item || !props.item.id) return
+
   formData.name = props.item.name
   formData.description = props.item.description || ''
   formData.price = props.item.price?.toString() || ''
@@ -159,6 +165,11 @@ const resetForm = () => {
 
 // Handle form submission
 const handleSubmit = async () => {
+  if (!props.item || !props.item.id) {
+    console.error('No valid item to edit')
+    return
+  }
+
   try {
     isSubmitting.value = true
 

@@ -251,17 +251,13 @@
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-48">
                       <!-- Edit Action -->
-                      <EditWishlistItemModal
-                        :item="item"
-                        @updated="onItemUpdated"
+                      <DropdownMenuItem
+                        @click="openEditModal(item)"
+                        class="cursor-pointer"
                       >
-                        <template #trigger>
-                          <DropdownMenuItem as="div" class="cursor-pointer">
-                            <Edit2 class="mr-2 h-4 w-4" />
-                            Bearbeiten
-                          </DropdownMenuItem>
-                        </template>
-                      </EditWishlistItemModal>
+                        <Edit2 class="mr-2 h-4 w-4" />
+                        Bearbeiten
+                      </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
 
@@ -331,6 +327,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Modal -->
+    <EditWishlistItemModal
+      :item="editingItem || defaultItem"
+      v-model="isEditModalOpen"
+      :show-trigger="false"
+      @updated="onItemUpdated"
+      @update:model-value="handleEditModalClose"
+    />
   </div>
 </template>
 
@@ -417,12 +422,31 @@ const wishlistData = ref<Wishlist | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const filter = ref('all')
+const editingItem = ref<WishlistItem | null>(null)
+const isEditModalOpen = ref(false)
 const pagination = ref({
   limit: 20,
   offset: 0,
   total: 0,
   hasMore: false,
 })
+
+// Create a default item for when no item is being edited
+const defaultItem: WishlistItem = {
+  id: '',
+  wishlistId: '',
+  name: '',
+  description: '',
+  price: 0,
+  url: '',
+  imageUrl: '',
+  isActive: true,
+  isPurchased: false,
+  priority: 3,
+  notes: '',
+  createdAt: '',
+  updatedAt: '',
+}
 
 // Computed
 const filteredItems = computed(() => {
@@ -574,6 +598,18 @@ const toggleActive = async (itemId: string, active: boolean) => {
 
 const openUrl = (url: string) => {
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+const openEditModal = (item: WishlistItem) => {
+  editingItem.value = item
+  isEditModalOpen.value = true
+}
+
+const handleEditModalClose = (isOpen: boolean) => {
+  isEditModalOpen.value = isOpen
+  if (!isOpen) {
+    editingItem.value = null
+  }
 }
 
 const loadNextPage = () => {
