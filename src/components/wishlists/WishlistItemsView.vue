@@ -19,6 +19,26 @@
             @created="onItemCreated"
             class="flex-1 sm:flex-none"
           />
+
+          <!-- More Actions Dropdown -->
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" class="flex-1 sm:flex-none">
+                <MoreHorizontal class="mr-2 h-4 w-4" />
+                Aktionen
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-48">
+              <DropdownMenuItem
+                @click="confirmDeleteWishlist"
+                class="text-destructive focus:text-destructive cursor-pointer"
+              >
+                <Trash2 class="mr-2 h-4 w-4" />
+                Wishlist löschen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             @click="router.push('/tools/wishlists')"
             variant="outline"
@@ -288,6 +308,17 @@
                         <Pause v-else class="mr-2 h-4 w-4" />
                         {{ item.isActive ? 'Deaktivieren' : 'Aktivieren' }}
                       </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+
+                      <!-- Delete Action -->
+                      <DropdownMenuItem
+                        @click="confirmDeleteItem(item)"
+                        class="text-destructive focus:text-destructive cursor-pointer"
+                      >
+                        <Trash2 class="mr-2 h-4 w-4" />
+                        Löschen
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -336,11 +367,62 @@
       @updated="onItemUpdated"
       @update:model-value="handleEditModalClose"
     />
+
+    <!-- Delete Confirmation Dialog -->
+    <AlertDialog v-model:open="deleteDialog.open">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Artikel löschen</AlertDialogTitle>
+          <AlertDialogDescription>
+            Sind Sie sicher, dass Sie den Artikel "{{
+              deleteDialog.item?.name
+            }}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht
+            werden.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+          <AlertDialogAction
+            @click="deleteItem"
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            :disabled="deleteDialog.loading"
+          >
+            <span v-if="deleteDialog.loading">Löscht...</span>
+            <span v-else>Löschen</span>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Delete Wishlist Confirmation Dialog -->
+    <AlertDialog v-model:open="deleteWishlistDialog.open">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Wishlist löschen</AlertDialogTitle>
+          <AlertDialogDescription>
+            Sind Sie sicher, dass Sie die Wishlist "{{ wishlistData?.name }}"
+            löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden
+            und alle Artikel in dieser Wishlist werden ebenfalls gelöscht.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+          <AlertDialogAction
+            @click="deleteWishlist"
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            :disabled="deleteWishlistDialog.loading"
+          >
+            <span v-if="deleteWishlistDialog.loading">Löscht...</span>
+            <span v-else>Löschen</span>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -358,6 +440,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import CreateWishlistItemModal from './CreateWishlistItemModal.vue'
 import EditWishlistItemModal from './EditWishlistItemModal.vue'
 import { toast } from 'vue-sonner'
@@ -375,6 +467,7 @@ import {
   ShoppingCart,
   Edit2,
   MoreHorizontal,
+  Trash2,
 } from 'lucide-vue-next'
 
 interface WishlistItem {
@@ -416,6 +509,9 @@ const router = useRouter()
 const route = useRoute()
 const wishlistId = computed(() => route.params.id as string)
 
+// Inject sidebar refresh function
+const refreshSidebar = inject<() => void>('refreshSidebar')
+
 // State
 const items = ref<WishlistItem[]>([])
 const wishlistData = ref<Wishlist | null>(null)
@@ -429,6 +525,19 @@ const pagination = ref({
   offset: 0,
   total: 0,
   hasMore: false,
+})
+
+// Delete dialog state
+const deleteDialog = ref({
+  open: false,
+  loading: false,
+  item: null as WishlistItem | null,
+})
+
+// Delete wishlist dialog state
+const deleteWishlistDialog = ref({
+  open: false,
+  loading: false,
 })
 
 // Create a default item for when no item is being edited
@@ -645,6 +754,107 @@ const onItemUpdated = (updatedItem: WishlistItem) => {
   const itemIndex = items.value.findIndex((item) => item.id === updatedItem.id)
   if (itemIndex !== -1) {
     items.value[itemIndex] = updatedItem
+  }
+}
+
+// Confirm delete item
+const confirmDeleteItem = (item: WishlistItem) => {
+  deleteDialog.value.item = item
+  deleteDialog.value.open = true
+}
+
+// Delete item
+const deleteItem = async () => {
+  if (!deleteDialog.value.item) return
+
+  try {
+    deleteDialog.value.loading = true
+
+    const response = await fetch(
+      `/api/wishlists/${wishlistId.value}/items/${deleteDialog.value.item.id}`,
+      {
+        method: 'DELETE',
+      },
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(data.message || 'API returned success: false')
+    }
+
+    // Remove item from the list
+    items.value = items.value.filter(
+      (item) => item.id !== deleteDialog.value.item!.id,
+    )
+
+    // Update pagination total
+    pagination.value.total = Math.max(0, pagination.value.total - 1)
+
+    // Show success message
+    toast.success('Artikel erfolgreich gelöscht')
+
+    // Close dialog
+    deleteDialog.value.open = false
+    deleteDialog.value.item = null
+  } catch (err) {
+    console.error('Error deleting item:', err)
+    const errorMessage =
+      err instanceof Error ? err.message : 'Unbekannter Fehler'
+    toast.error(`Fehler beim Löschen des Artikels: ${errorMessage}`)
+  } finally {
+    deleteDialog.value.loading = false
+  }
+}
+
+// Confirm delete wishlist
+const confirmDeleteWishlist = () => {
+  deleteWishlistDialog.value.open = true
+}
+
+// Delete wishlist
+const deleteWishlist = async () => {
+  if (!wishlistId.value) return
+
+  try {
+    deleteWishlistDialog.value.loading = true
+
+    const response = await fetch(`/api/wishlists/${wishlistId.value}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(data.message || 'API returned success: false')
+    }
+
+    // Show success message
+    toast.success('Wishlist erfolgreich gelöscht')
+
+    // Refresh sidebar to remove deleted wishlist
+    refreshSidebar?.()
+
+    // Navigate back to wishlists overview
+    router.push('/tools/wishlists')
+
+    // Close dialog
+    deleteWishlistDialog.value.open = false
+  } catch (err) {
+    console.error('Error deleting wishlist:', err)
+    const errorMessage =
+      err instanceof Error ? err.message : 'Unbekannter Fehler'
+    toast.error(`Fehler beim Löschen der Wishlist: ${errorMessage}`)
+  } finally {
+    deleteWishlistDialog.value.loading = false
   }
 }
 

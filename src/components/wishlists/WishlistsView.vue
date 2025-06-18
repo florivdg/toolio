@@ -171,6 +171,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import CreateWishlistModal from './CreateWishlistModal.vue'
 import { AlertCircle, FileText, Package } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 // Vue Router
 const router = useRouter()
