@@ -32,9 +32,12 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="py-12 text-center">
-      <div class="text-destructive space-y-2">
-        <p>❌ Fehler beim Laden der Wishlists</p>
-        <p class="text-muted-foreground text-sm">{{ error }}</p>
+      <div class="text-destructive space-y-4">
+        <AlertCircle class="text-destructive mx-auto h-12 w-12" />
+        <div class="space-y-2">
+          <p class="font-semibold">Fehler beim Laden der Wishlists</p>
+          <p class="text-muted-foreground text-sm">{{ error }}</p>
+        </div>
         <Button @click="fetchWishlists" variant="outline" class="mt-4">
           Erneut versuchen
         </Button>
@@ -44,11 +47,13 @@
     <!-- Empty State -->
     <div v-else-if="wishlists.length === 0" class="py-12 text-center">
       <div class="space-y-4">
-        <div class="text-4xl">📝</div>
-        <h3 class="text-lg font-semibold">Noch keine Wishlists</h3>
-        <p class="text-muted-foreground">
-          Erstellen Sie Ihre erste Wishlist, um Ihre Wünsche zu organisieren.
-        </p>
+        <FileText class="text-muted-foreground/50 mx-auto h-16 w-16" />
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Noch keine Wishlists</h3>
+          <p class="text-muted-foreground">
+            Erstellen Sie Ihre erste Wishlist, um Ihre Wünsche zu organisieren.
+          </p>
+        </div>
         <CreateWishlistModal @created="handleWishlistCreated">
           <template #trigger>
             <Button class="mt-4"> Erste Wishlist erstellen </Button>
@@ -109,7 +114,7 @@
                     v-else
                     class="bg-muted flex h-8 w-8 flex-shrink-0 items-center justify-center rounded"
                   >
-                    <span class="text-muted-foreground text-xs">📦</span>
+                    <Package class="text-muted-foreground h-4 w-4" />
                   </div>
                   <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium">{{ item.name }}</p>
@@ -121,7 +126,7 @@
               </div>
             </div>
             <div v-else class="py-8 text-center">
-              <div class="text-muted-foreground/50 mb-2 text-2xl">📝</div>
+              <FileText class="text-muted-foreground/50 mx-auto mb-3 h-8 w-8" />
               <p class="text-muted-foreground text-sm">
                 Noch keine Artikel hinzugefügt
               </p>
@@ -152,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Card,
@@ -165,9 +170,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import CreateWishlistModal from './CreateWishlistModal.vue'
+import { AlertCircle, FileText, Package } from 'lucide-vue-next'
 
 // Vue Router
 const router = useRouter()
+
+// Inject sidebar refresh function
+const refreshSidebar = inject<() => void>('refreshSidebar')
 
 // Types
 interface WishlistItem {
@@ -254,6 +263,9 @@ const fetchWishlists = async (offset = 0, replace = true) => {
 const handleWishlistCreated = (wishlist: Wishlist) => {
   // Add new wishlist to the beginning of the list
   wishlists.value.unshift(wishlist)
+
+  // Refresh sidebar to show new wishlist
+  refreshSidebar?.()
 }
 
 // Load more wishlists
