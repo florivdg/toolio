@@ -164,6 +164,22 @@ function extractDescription(html: string): string | undefined {
  * Extract price from HTML
  */
 function extractPrice(html: string, url: string): number | undefined {
+  // Special handling for Amazon markup: combine a-price-whole and a-price-fraction
+  if (url.includes('amazon.')) {
+    // Match the price block with both whole and fraction
+    const amazonPriceMatch = html.match(
+      /<span[^>]*class="a-price-whole"[^>]*>([0-9.]+)<span[^>]*class="a-price-decimal"[^>]*>[^<]*<\/span><\/span><span[^>]*class="a-price-fraction"[^>]*>([0-9]{2})<\/span>/i,
+    )
+    if (amazonPriceMatch && amazonPriceMatch[1] && amazonPriceMatch[2]) {
+      // Use comma as decimal separator for German Amazon
+      const priceStr = `${amazonPriceMatch[1].replace(/\./g, '').replace(/\s/g, '')}.${amazonPriceMatch[2]}`
+      const price = parseFloat(priceStr)
+      if (!isNaN(price) && price > 0 && price < 100000) {
+        return price
+      }
+    }
+  }
+
   const siteInfo = getEcommerceSiteInfo(url)
 
   const patterns: RegExp[] = [
