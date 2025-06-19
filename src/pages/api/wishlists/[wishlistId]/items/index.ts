@@ -6,7 +6,7 @@ import {
   wishlistItems,
   wishlistItemSchema,
 } from '@/db/schema/wishlists'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, count } from 'drizzle-orm'
 
 // Schema for query parameters
 const queryParamsSchema = z.object({
@@ -74,11 +74,12 @@ export const GET: APIRoute = async ({ params, url }) => {
       .all()
 
     // Get total count for pagination
-    const totalCount = db
-      .select({ count: wishlistItems.id })
+    const countResult = db
+      .select({ count: count() })
       .from(wishlistItems)
       .where(and(...whereConditions))
-      .all().length
+      .get()
+    const totalCount = countResult?.count ?? 0
 
     return new Response(
       JSON.stringify({

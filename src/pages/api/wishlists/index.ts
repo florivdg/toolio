@@ -58,10 +58,8 @@ export const GET: APIRoute = async ({ url }) => {
     })
 
     // Get total count for pagination
-    const totalCount = db
-      .select({ count: wishlists.id })
-      .from(wishlists)
-      .all().length
+    const countResult = db.select({ count: count() }).from(wishlists).get()
+    const totalCount = countResult?.count ?? 0
 
     return new Response(
       JSON.stringify({
