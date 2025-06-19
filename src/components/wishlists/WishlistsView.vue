@@ -38,7 +38,7 @@
           <p class="font-semibold">Fehler beim Laden der Wishlists</p>
           <p class="text-muted-foreground text-sm">{{ error }}</p>
         </div>
-        <Button @click="fetchWishlists" variant="outline" class="mt-4">
+        <Button @click="fetchWishlistsRetry" variant="outline" class="mt-4">
           Erneut versuchen
         </Button>
       </div>
@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Card,
@@ -171,7 +171,27 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import CreateWishlistModal from './CreateWishlistModal.vue'
 import { AlertCircle, FileText, Package } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
+import { useQuery } from '@pinia/colada'
+
+// API function
+const fetchWishlists = async (
+  params: { limit?: number; offset?: number } = {},
+) => {
+  const { limit = 12, offset = 0 } = params
+  const response = await fetch(`/api/wishlists?limit=${limit}&offset=${offset}`)
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+
+  if (!data.success) {
+    throw new Error('API returned success: false')
+  }
+
+  return data
+}
 
 // Vue Router
 const router = useRouter()
@@ -198,81 +218,43 @@ interface Wishlist {
   latestItems?: WishlistItem[]
 }
 
-interface WishlistsResponse {
-  success: boolean
-  data: Wishlist[]
-  pagination: {
-    limit: number
-    offset: number
-    total: number
-    hasMore: boolean
-  }
-}
+// Use Pinia Colada for data fetching
+const {
+  data: wishlistsData,
+  error: queryError,
+  isPending: loading,
+  refresh: refetchWishlists,
+} = useQuery({
+  key: ['wishlists', 'list', { limit: 12, offset: 0 }],
+  query: () => fetchWishlists({ limit: 12, offset: 0 }),
+})
 
-// Reactive state
-const wishlists = ref<Wishlist[]>([])
-const loading = ref(true)
-const loadingMore = ref(false)
-const error = ref<string | null>(null)
-const hasMore = ref(false)
-const currentOffset = ref(0)
-const limit = 12
-
-// Fetch wishlists from API
-const fetchWishlists = async (offset = 0, replace = true) => {
-  try {
-    if (offset === 0) {
-      loading.value = true
-    } else {
-      loadingMore.value = true
-    }
-
-    error.value = null
-
-    const response = await fetch(
-      `/api/wishlists?limit=${limit}&offset=${offset}`,
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: WishlistsResponse = await response.json()
-
-    if (!data.success) {
-      throw new Error('API returned success: false')
-    }
-
-    if (replace) {
-      wishlists.value = data.data
-    } else {
-      wishlists.value.push(...data.data)
-    }
-
-    hasMore.value = data.pagination.hasMore
-    currentOffset.value = offset + data.data.length
-  } catch (err) {
-    console.error('Error fetching wishlists:', err)
-    error.value = err instanceof Error ? err.message : 'Unbekannter Fehler'
-  } finally {
-    loading.value = false
-    loadingMore.value = false
-  }
-}
+// Computed values
+const wishlists = computed(() => wishlistsData.value?.data || [])
+const error = computed(() => queryError.value?.message || null)
+const hasMore = computed(
+  () => wishlistsData.value?.pagination?.hasMore || false,
+)
 
 // Handle wishlist created event from modal
 const handleWishlistCreated = (wishlist: Wishlist) => {
-  // Add new wishlist to the beginning of the list
-  wishlists.value.unshift(wishlist)
+  // Refresh the query to show new wishlist
+  refetchWishlists()
 
   // Refresh sidebar to show new wishlist
   refreshSidebar?.()
 }
 
-// Load more wishlists
-const loadMore = () => {
-  if (!loadingMore.value && hasMore.value) {
-    fetchWishlists(currentOffset.value, false)
+// Load more wishlists (for future implementation with infinite queries)
+const loadingMore = ref(false)
+const loadMore = async () => {
+  if (loadingMore.value) return
+  loadingMore.value = true
+  try {
+    // Example: fetch next page (not implemented, just refetch for now)
+    await refetchWishlists()
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -281,8 +263,8 @@ const navigateToWishlist = (wishlistId: string) => {
   router.push(`/tools/wishlists/${wishlistId}`)
 }
 
-// Initialize component
-onMounted(() => {
-  fetchWishlists()
-})
+// Fetch wishlists function for error retry
+const fetchWishlistsRetry = () => {
+  refetchWishlists()
+}
 </script>

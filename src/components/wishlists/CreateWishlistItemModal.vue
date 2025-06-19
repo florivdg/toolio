@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import {
   Dialog,
@@ -41,6 +41,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
 import WishlistItemForm from './WishlistItemForm.vue'
+import { useCreateWishlistItemMutation } from '@/lib/wishlists/queries'
 
 // Types
 interface WishlistItem {
@@ -95,9 +96,11 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+// Use Pinia Colada mutation
+const createItemMutation = useCreateWishlistItemMutation()
+
 // Reactive state
 const isOpen = ref(props.modelValue)
-const isSubmitting = ref(false)
 const formData = reactive({
   name: '',
   description: '',
@@ -107,6 +110,11 @@ const formData = reactive({
   priority: '3',
   notes: '',
 })
+
+// Computed state
+const isSubmitting = computed(
+  () => createItemMutation.asyncStatus.value === 'loading',
+)
 
 // Watch for external changes to modelValue
 watch(
@@ -140,38 +148,21 @@ const updateFormData = (newFormData: typeof formData) => {
 // Handle form submission
 const handleSubmit = async () => {
   try {
-    isSubmitting.value = true
-
-    const requestData: CreateWishlistItemRequest = {
+    const requestData = {
+      wishlistId: props.wishlistId,
       name: formData.name.trim(),
-      description: formData.description.trim() || null,
-      price: formData.price ? parseFloat(formData.price) : null,
+      description: formData.description.trim() || undefined,
+      price: formData.price ? parseFloat(formData.price) : undefined,
       url: formData.url.trim(),
-      imageUrl: formData.imageUrl.trim() || null,
+      imageUrl: formData.imageUrl.trim() || undefined,
       priority: parseInt(formData.priority),
-      notes: formData.notes.trim() || null,
+      notes: formData.notes.trim() || undefined,
     }
 
-    const response = await fetch(`/api/wishlists/${props.wishlistId}/items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData),
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: CreateWishlistItemResponse = await response.json()
-
-    if (!data.success || !data.data) {
-      throw new Error(data.message || 'Fehler beim Hinzufügen des Artikels')
-    }
+    const data = await createItemMutation.mutateAsync(requestData)
 
     // Emit the created item
-    emit('created', data.data)
+    emit('created', data)
 
     // Reset form and close dialog
     resetForm()
@@ -185,8 +176,6 @@ const handleSubmit = async () => {
         ? err.message
         : 'Fehler beim Hinzufügen des Artikels',
     )
-  } finally {
-    isSubmitting.value = false
   }
 }
 </script>
