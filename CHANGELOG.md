@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.2.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.1.0...v0.2.0)
+
+### 🚀 Enhancements
+
+- Add wishlist and wishlist items API with CRUD operations #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **dialog:** Add dialog component structure with close, content, header, footer, overlay, title, and trigger ([5f5ae37](https://github.com/florivdg/toolio/commit/5f5ae37))
+- **textarea:** Add Textarea component with v-model support ([38866ea](https://github.com/florivdg/toolio/commit/38866ea))
+- **wishlists:** Add CreateWishlistModal and integrate with WishlistsView #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **collapsible:** Add Collapsible, CollapsibleContent, and CollapsibleTrigger components ([7415911](https://github.com/florivdg/toolio/commit/7415911))
+- **dropdown-menu:** Add DropdownMenu components and structure ([489ec70](https://github.com/florivdg/toolio/commit/489ec70))
+- Add EditWishlistItemModal and WishlistItemForm components for editing wishlist items #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **wishlists:** Enhance EditWishlistItemModal with form population and validation #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **wishlists:** Add delete functionality for wishlist items and confirmation dialogs #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **wishlists:** Implement URL extraction feature for product details #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **url-extractor:** Add special handling for Amazon price extraction #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+
+### 💅 Refactors
+
+- **api:** Remove authentication checks from wishlist item routes #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **api:** Enhance wishlist item update with partial updates and validation #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **wishlists:** Update Create and Edit Wishlist Item request interfaces to allow null values #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **wishlists:** Optimize total count retrieval for pagination #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **wishlists:** Replace DialogContent with DialogScrollContent for improved layout #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+
+### 📖 Documentation
+
+- Add authentication section to copilot instructions ([f4eeaaf](https://github.com/florivdg/toolio/commit/f4eeaaf))
+- **wishlists:** Update API documentation header with metadata #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+
+### 🏡 Chore
+
+- **db:** Add migrations for wishlist_items and wishlists tables #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+- **vscode:** Add oxc linter ([7f3c47a](https://github.com/florivdg/toolio/commit/7f3c47a))
+- **agent:** Update copilot instructions, mcp server and add coding best practices ([7f9b606](https://github.com/florivdg/toolio/commit/7f9b606))
+
+### 🎨 Styles
+
+- **wishlists:** Enhance layout and responsiveness for wishlist items view #5 ([#5](https://github.com/florivdg/toolio/issues/5))
+
 ## v0.1.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.0.2...v0.1.0)
