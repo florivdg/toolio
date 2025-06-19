@@ -1,31 +1,32 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-6">
+    <div class="@container mb-6">
       <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        class="flex flex-col gap-4 @2xl:flex-row @2xl:items-start @2xl:justify-between"
       >
-        <div>
-          <h2 class="text-2xl font-bold">
+        <div class="min-w-0 flex-1">
+          <h2 class="text-xl font-bold @md:text-2xl">
             {{ wishlistData?.name || 'Wunschliste' }}
           </h2>
-          <p class="text-muted-foreground mt-2">
+          <p class="text-muted-foreground mt-2 text-sm @md:text-base">
             {{ wishlistData?.description || 'Artikel in dieser Wunschliste' }}
           </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col gap-2 @md:flex-row @2xl:flex-shrink-0">
           <CreateWishlistItemModal
             :wishlist-id="wishlistId"
             @created="onItemCreated"
-            class="flex-1 sm:flex-none"
+            class="w-full @md:w-auto"
           />
 
           <!-- More Actions Dropdown -->
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" class="flex-1 sm:flex-none">
+              <Button variant="outline" class="w-full @md:w-auto">
                 <MoreHorizontal class="mr-2 h-4 w-4" />
-                Aktionen
+                <span class="@max-lg:hidden">Aktionen</span>
+                <span class="@lg:hidden">Mehr</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-48">
@@ -42,9 +43,10 @@
           <Button
             @click="router.push('/tools/wishlists')"
             variant="outline"
-            class="flex-1 sm:flex-none"
+            class="w-full @md:w-auto"
           >
-            Zurück zur Übersicht
+            <span class="@max-xl:hidden">Zurück zur Übersicht</span>
+            <span class="@xl:hidden">Zurück</span>
           </Button>
         </div>
       </div>
@@ -88,16 +90,19 @@
     </div>
 
     <!-- Items Table -->
-    <div v-else class="space-y-4">
+    <div v-else class="@container space-y-4">
       <!-- Filters -->
       <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        class="space-y-4 @2xl:flex @2xl:items-start @2xl:justify-between @2xl:space-y-0"
       >
-        <div class="flex items-center gap-4">
+        <!-- Left side: Filter and count -->
+        <div
+          class="flex flex-col gap-3 @lg:flex-row @lg:items-center @lg:gap-4"
+        >
           <div class="flex items-center gap-2">
-            <label class="text-sm font-medium">Filter:</label>
+            <label class="shrink-0 text-sm font-medium">Filter:</label>
             <Select v-model="filter">
-              <SelectTrigger class="w-full sm:w-40 md:min-w-56">
+              <SelectTrigger class="w-full min-w-0 @sm:w-48 @lg:w-56">
                 <SelectValue placeholder="Alle anzeigen" />
               </SelectTrigger>
               <SelectContent>
@@ -108,33 +113,44 @@
               </SelectContent>
             </Select>
           </div>
-          <div class="text-muted-foreground text-sm">
+          <div
+            class="text-muted-foreground shrink-0 text-sm @lg:border-l @lg:pl-4"
+          >
             {{ filteredItems.length }} von {{ items.length }} Artikel{{
               items.length !== 1 ? 'n' : ''
             }}
           </div>
         </div>
 
-        <!-- Price Summary -->
-        <div v-if="items.length > 0" class="text-right text-sm font-medium">
-          <span class="text-muted-foreground">Gesamtwert:</span>
-          <span class="ml-2 font-semibold">{{ formatPrice(totalSum) }}</span>
-          <span
-            v-if="activeSum !== totalSum"
-            class="text-muted-foreground ml-1"
+        <!-- Right side: Price Summary -->
+        <div
+          v-if="items.length > 0"
+          class="text-sm font-medium @2xl:flex-shrink-0 @2xl:text-right"
+        >
+          <div
+            class="flex flex-col gap-1 @md:flex-row @md:items-center @md:gap-3 @2xl:flex-col @2xl:items-end @2xl:gap-0"
           >
-            ({{ formatPrice(activeSum) }} aktiv)
-          </span>
+            <div class="flex items-center gap-2 @2xl:justify-end">
+              <span class="text-muted-foreground shrink-0">Gesamtwert:</span>
+              <span class="font-semibold">{{ formatPrice(totalSum) }}</span>
+            </div>
+            <div
+              v-if="activeSum !== totalSum"
+              class="text-muted-foreground text-xs @2xl:text-sm"
+            >
+              ({{ formatPrice(activeSum) }} aktiv)
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Custom Rich Table -->
-      <div class="overflow-hidden rounded-lg border">
-        <!-- Table Header -->
-        <div class="bg-muted/50 border-b px-6 py-4">
-          <div class="grid grid-cols-12 items-center gap-4 text-sm font-medium">
+      <div class="@container overflow-hidden rounded-lg border">
+        <!-- Desktop Table Header -->
+        <div class="bg-muted/50 border-b px-6 py-4 @max-3xl:hidden">
+          <div class="grid grid-cols-14 items-center gap-4 text-sm font-medium">
             <div class="col-span-1">Bild</div>
-            <div class="col-span-3">Name & Beschreibung</div>
+            <div class="col-span-5">Name & Beschreibung</div>
             <div class="col-span-2">Preis</div>
             <div class="col-span-2">Priorität</div>
             <div class="col-span-2">Status</div>
@@ -147,10 +163,13 @@
           <div
             v-for="item in filteredItems"
             :key="item.id"
-            class="hover:bg-muted/20 px-6 py-4 transition-colors"
+            class="hover:bg-muted/20 transition-colors"
             :class="{ 'opacity-60': !item.isActive || item.isPurchased }"
           >
-            <div class="grid grid-cols-12 items-center gap-4">
+            <!-- Desktop Row Layout -->
+            <div
+              class="grid grid-cols-14 items-center gap-4 px-6 py-4 @max-3xl:hidden"
+            >
               <!-- Image -->
               <div class="col-span-1">
                 <div
@@ -168,7 +187,7 @@
               </div>
 
               <!-- Name & Description -->
-              <div class="col-span-3 min-w-0">
+              <div class="col-span-5 min-w-0">
                 <div class="truncate font-medium" :title="item.name">
                   {{ item.name }}
                 </div>
@@ -321,6 +340,203 @@
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mobile Card Layout -->
+            <div class="space-y-4 p-4 @3xl:hidden">
+              <!-- Header with Image and Name -->
+              <div class="flex items-start gap-3">
+                <div
+                  class="bg-muted flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded border"
+                >
+                  <img
+                    v-if="item.imageUrl"
+                    :src="item.imageUrl"
+                    :alt="item.name"
+                    class="h-full w-full object-cover"
+                    @error="handleImageError"
+                  />
+                  <Package v-else class="text-muted-foreground h-6 w-6" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="leading-tight font-medium" :title="item.name">
+                    {{ item.name }}
+                  </h3>
+                  <div
+                    v-if="item.description"
+                    class="text-muted-foreground mt-1 line-clamp-2 text-sm"
+                  >
+                    {{ item.description }}
+                  </div>
+                  <div
+                    v-if="item.notes"
+                    class="text-muted-foreground mt-1 text-xs italic"
+                  >
+                    Notiz: {{ item.notes }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Details Grid -->
+              <div class="grid grid-cols-1 gap-3 @sm:grid-cols-2">
+                <!-- Price -->
+                <div
+                  class="flex items-center justify-between @sm:flex-col @sm:items-start @sm:justify-start"
+                >
+                  <span class="text-muted-foreground text-sm font-medium"
+                    >Preis</span
+                  >
+                  <div v-if="item.price" class="font-medium">
+                    {{ formatPrice(item.price) }}
+                  </div>
+                  <div v-else class="text-muted-foreground text-sm">
+                    Kein Preis
+                  </div>
+                </div>
+
+                <!-- Priority -->
+                <div
+                  class="flex items-center justify-between @sm:flex-col @sm:items-start @sm:justify-start"
+                >
+                  <span class="text-muted-foreground text-sm font-medium"
+                    >Priorität</span
+                  >
+                  <div class="flex items-center gap-2">
+                    <div class="flex">
+                      <Star
+                        v-for="star in 5"
+                        :key="star"
+                        class="h-4 w-4"
+                        :class="
+                          star <= (item.priority || 0)
+                            ? 'fill-yellow-500 text-yellow-500'
+                            : 'text-muted-foreground'
+                        "
+                      />
+                    </div>
+                    <span class="text-muted-foreground text-xs">
+                      ({{ item.priority || 0 }})
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Status -->
+                <div
+                  class="flex items-center justify-between @sm:flex-col @sm:items-start @sm:justify-start"
+                >
+                  <span class="text-muted-foreground text-sm font-medium"
+                    >Status</span
+                  >
+                  <div>
+                    <Badge
+                      v-if="item.isPurchased"
+                      variant="default"
+                      class="flex w-fit items-center gap-1"
+                    >
+                      <CheckCircle class="h-3 w-3" />
+                      Gekauft
+                    </Badge>
+                    <Badge
+                      v-else-if="!item.isActive"
+                      variant="secondary"
+                      class="flex w-fit items-center gap-1"
+                    >
+                      <Pause class="h-3 w-3" />
+                      Inaktiv
+                    </Badge>
+                    <Badge
+                      v-else
+                      variant="outline"
+                      class="flex w-fit items-center gap-1"
+                    >
+                      <ShoppingCart class="h-3 w-3" />
+                      Aktiv
+                    </Badge>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div
+                  class="flex items-center justify-between @sm:flex-col @sm:items-start @sm:justify-start"
+                >
+                  <span class="text-muted-foreground text-sm font-medium"
+                    >Aktionen</span
+                  >
+                  <div class="flex items-center gap-2">
+                    <!-- Primary Action: Link -->
+                    <Button
+                      v-if="item.url"
+                      @click="openUrl(item.url)"
+                      size="sm"
+                      variant="outline"
+                      class="flex items-center gap-1"
+                    >
+                      <ExternalLink class="h-3 w-3" />
+                      Link
+                    </Button>
+
+                    <!-- Secondary Actions Dropdown -->
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost" class="h-8 w-8 p-0">
+                          <MoreHorizontal class="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" class="w-48">
+                        <!-- Edit Action -->
+                        <DropdownMenuItem
+                          @click="openEditModal(item)"
+                          class="cursor-pointer"
+                        >
+                          <Edit2 class="mr-2 h-4 w-4" />
+                          Bearbeiten
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <!-- Purchase Toggle -->
+                        <DropdownMenuItem
+                          v-if="!item.isPurchased"
+                          @click="togglePurchased(item.id, true)"
+                          class="cursor-pointer"
+                        >
+                          <CheckCircle class="mr-2 h-4 w-4" />
+                          Als gekauft markieren
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          v-else
+                          @click="togglePurchased(item.id, false)"
+                          class="cursor-pointer"
+                        >
+                          <UndoIcon class="mr-2 h-4 w-4" />
+                          Rückgängig machen
+                        </DropdownMenuItem>
+
+                        <!-- Active Toggle -->
+                        <DropdownMenuItem
+                          @click="toggleActive(item.id, !item.isActive)"
+                          class="cursor-pointer"
+                        >
+                          <Play v-if="!item.isActive" class="mr-2 h-4 w-4" />
+                          <Pause v-else class="mr-2 h-4 w-4" />
+                          {{ item.isActive ? 'Deaktivieren' : 'Aktivieren' }}
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <!-- Delete Action -->
+                        <DropdownMenuItem
+                          @click="confirmDeleteItem(item)"
+                          class="text-destructive focus:text-destructive cursor-pointer"
+                        >
+                          <Trash2 class="mr-2 h-4 w-4" />
+                          Löschen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
             </div>
