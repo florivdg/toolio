@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, provide } from 'vue'
+import { computed, provide } from 'vue'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { FileText, List } from 'lucide-vue-next'
+import { useQuery } from '@pinia/colada'
 
 // Types
 interface Wishlist {
@@ -12,40 +13,50 @@ interface Wishlist {
   itemCount?: number
 }
 
-// State
-const wishlists = ref<Wishlist[]>([])
-const loading = ref(true)
-
-// Fetch wishlists for sidebar navigation
-const fetchWishlists = async () => {
-  try {
-    loading.value = true
-    const response = await fetch('/api/wishlists?limit=50') // Get more for sidebar
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        wishlists.value = data.data
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching wishlists for sidebar:', err)
-  } finally {
-    loading.value = false
+interface WishlistsResponse {
+  success: boolean
+  data: Wishlist[]
+  pagination: {
+    limit: number
+    offset: number
+    total: number
+    hasMore: boolean
   }
 }
 
+// API function for sidebar
+const fetchWishlistsForSidebar = async () => {
+  const response = await fetch('/api/wishlists?limit=50') // Get more for sidebar
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+  
+  const data: WishlistsResponse = await response.json()
+  
+  if (!data.success) {
+    throw new Error('API returned success: false')
+  }
+  
+  return data.data
+}
+
+// Use Pinia Colada for sidebar data fetching
+const { data: wishlistsData, error, isPending: loading, refresh: refetchWishlists } = useQuery({
+  key: ['wishlists', 'sidebar'], // Different key for sidebar to avoid conflicts
+  query: fetchWishlistsForSidebar,
+})
+
+// Computed values
+const wishlists = computed(() => wishlistsData.value || [])
+
 // Refresh sidebar when wishlists change
 const refreshSidebar = () => {
-  fetchWishlists()
+  refetchWishlists()
 }
 
 // Provide refresh function to child components
 provide('refreshSidebar', refreshSidebar)
-
-onMounted(() => {
-  fetchWishlists()
-})
 </script>
 
 <template>

@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import {
   Dialog,
@@ -70,6 +70,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'vue-sonner'
+import { useCreateWishlistMutation } from '@/lib/wishlists/queries'
 
 // Types
 interface Wishlist {
@@ -79,17 +80,6 @@ interface Wishlist {
   createdAt: Date | string
   updatedAt?: Date | string
   itemCount?: number
-}
-
-interface CreateWishlistRequest {
-  name: string
-  description?: string
-}
-
-interface CreateWishlistResponse {
-  success: boolean
-  data?: Wishlist
-  message?: string
 }
 
 // Props
@@ -111,13 +101,20 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+// Use Pinia Colada mutation
+const createWishlistMutation = useCreateWishlistMutation()
+
 // Reactive state
 const isOpen = ref(props.modelValue)
-const isSubmitting = ref(false)
 const formData = reactive({
   name: '',
   description: '',
 })
+
+// Computed state
+const isSubmitting = computed(
+  () => createWishlistMutation.asyncStatus.value === 'loading',
+)
 
 // Watch for external changes to modelValue
 watch(
@@ -146,33 +143,15 @@ const handleSubmit = async () => {
   }
 
   try {
-    isSubmitting.value = true
-
-    const requestData: CreateWishlistRequest = {
+    const requestData = {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
     }
 
-    const response = await fetch('/api/wishlists', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData),
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: CreateWishlistResponse = await response.json()
-
-    if (!data.success || !data.data) {
-      throw new Error(data.message || 'Fehler beim Erstellen der Wishlist')
-    }
+    const data = await createWishlistMutation.mutateAsync(requestData)
 
     // Emit the created wishlist
-    emit('created', data.data)
+    emit('created', data)
 
     // Reset form and close dialog
     resetForm()
@@ -184,8 +163,6 @@ const handleSubmit = async () => {
     toast.error(
       err instanceof Error ? err.message : 'Fehler beim Erstellen der Wishlist',
     )
-  } finally {
-    isSubmitting.value = false
   }
 }
 </script>

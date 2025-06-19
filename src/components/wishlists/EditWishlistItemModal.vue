@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { Edit2 } from 'lucide-vue-next'
 import {
   Dialog,
@@ -40,6 +40,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
 import WishlistItemForm from './WishlistItemForm.vue'
+import { useUpdateWishlistItemMutation } from '@/lib/wishlists/queries'
 
 // Types
 interface WishlistItem {
@@ -94,9 +95,11 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+// Use Pinia Colada mutation
+const updateItemMutation = useUpdateWishlistItemMutation()
+
 // Reactive state
 const isOpen = ref(props.modelValue)
-const isSubmitting = ref(false)
 const formData = reactive({
   name: '',
   description: '',
@@ -106,6 +109,11 @@ const formData = reactive({
   priority: '3',
   notes: '',
 })
+
+// Computed state
+const isSubmitting = computed(
+  () => updateItemMutation.asyncStatus.value === 'loading',
+)
 
 // Watch for external changes to modelValue
 watch(
@@ -175,41 +183,22 @@ const handleSubmit = async () => {
   }
 
   try {
-    isSubmitting.value = true
-
-    const requestData: UpdateWishlistItemRequest = {
+    const requestData = {
+      wishlistId: props.item.wishlistId,
+      itemId: props.item.id,
       name: formData.name.trim(),
-      description: formData.description.trim() || null,
-      price: formData.price ? parseFloat(formData.price) : null,
+      description: formData.description.trim() || undefined,
+      price: formData.price ? parseFloat(formData.price) : undefined,
       url: formData.url.trim(),
-      imageUrl: formData.imageUrl.trim() || null,
+      imageUrl: formData.imageUrl.trim() || undefined,
       priority: parseInt(formData.priority),
-      notes: formData.notes.trim() || null,
+      notes: formData.notes.trim() || undefined,
     }
 
-    const response = await fetch(
-      `/api/wishlists/${props.item.wishlistId}/items/${props.item.id}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      },
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: UpdateWishlistItemResponse = await response.json()
-
-    if (!data.success || !data.data) {
-      throw new Error(data.message || 'Fehler beim Aktualisieren des Artikels')
-    }
+    const data = await updateItemMutation.mutateAsync(requestData)
 
     // Emit the updated item
-    emit('updated', data.data)
+    emit('updated', data)
 
     // Close dialog
     isOpen.value = false
@@ -222,8 +211,6 @@ const handleSubmit = async () => {
         ? err.message
         : 'Fehler beim Aktualisieren des Artikels',
     )
-  } finally {
-    isSubmitting.value = false
   }
 }
 </script>
