@@ -1,4 +1,10 @@
-# Wishlists API Documentation
+---
+title: Wishlists
+description: Track and manage things you want to buy or receive as gifts.
+createdAt: 2025-06-19
+tags: [E-Commerce]
+draft: false
+---
 
 This document describes the REST API endpoints for managing wishlists and wishlist items in the Toolio application.
 
