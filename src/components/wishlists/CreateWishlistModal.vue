@@ -8,7 +8,7 @@
         </Button>
       </slot>
     </DialogTrigger>
-    <DialogContent class="sm:max-w-md">
+    <DialogScrollContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>Neue Wishlist erstellen</DialogTitle>
         <DialogDescription>
@@ -49,7 +49,7 @@
           </Button>
         </DialogFooter>
       </form>
-    </DialogContent>
+    </DialogScrollContent>
   </Dialog>
 </template>
 
@@ -58,13 +58,12 @@ import { ref, reactive, watch } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogClose,
+  DialogScrollContent,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

@@ -7,14 +7,13 @@
         </Button>
       </slot>
     </DialogTrigger>
-    <DialogContent class="sm:max-w-lg">
+    <DialogScrollContent class="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Artikel bearbeiten</DialogTitle>
         <DialogDescription>
           Bearbeiten Sie die Details dieses Artikels.
         </DialogDescription>
       </DialogHeader>
-
       <WishlistItemForm
         :form-data="formData"
         :is-submitting="isSubmitting"
@@ -24,7 +23,7 @@
         @submit="handleSubmit"
         @update:form-data="updateFormData"
       />
-    </DialogContent>
+    </DialogScrollContent>
   </Dialog>
 </template>
 
@@ -33,11 +32,10 @@ import { ref, reactive, watch } from 'vue'
 import { Edit2 } from 'lucide-vue-next'
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogScrollContent,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
