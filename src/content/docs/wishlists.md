@@ -427,62 +427,101 @@ Update the active status of a specific wishlist item.
 }
 ```
 
-## Error Responses
+## URL Extraction Endpoint
 
-All endpoints return consistent error responses:
+### Extract Product Details from URL
+
+**POST** `/api/wishlists/extract-url`
+
+Extract product details from a URL to pre-fill wishlist item forms. This endpoint fetches the HTML content from the provided URL and extracts relevant product information like name, description, price, and image.
+
+**Request Body:**
+
+```json
+{
+  "url": "string (required, must be a valid URL)"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "name": "string (optional)",
+    "description": "string (optional)",
+    "price": "number (optional)",
+    "imageUrl": "string (optional)",
+    "extractedFrom": "string",
+    "confidence": "high|medium|low"
+  }
+}
+```
+
+**Example Request:**
+
+```bash
+curl -X POST http://localhost:4321/api/wishlists/extract-url \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.amazon.de/product-example"}'
+```
+
+**Example Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "name": "Wireless Bluetooth Kopfhörer",
+    "description": "Premium Bluetooth Kopfhörer mit Noise Cancellation",
+    "price": 89.99,
+    "imageUrl": "https://example.com/product-image.jpg",
+    "extractedFrom": "https://www.amazon.de/product-example",
+    "confidence": "high"
+  }
+}
+```
+
+**Supported Extraction Patterns:**
+
+- **Product Name**: OpenGraph title, Twitter title, product-specific meta tags, Amazon product title, H1 tags, page title
+- **Description**: OpenGraph description, meta description, product description meta tags
+- **Price**: OpenGraph price meta tags, Amazon price elements, general price patterns (€), JSON-LD structured data
+- **Image**: OpenGraph image, Twitter image, product image meta tags, Amazon main image
+
+**Confidence Levels:**
+
+- **High**: Price was successfully extracted (indicates a product page)
+- **Medium**: Name was extracted but no price found
+- **Low**: Minimal information was extracted
+
+**Error Responses:**
 
 **Validation Error (400):**
 
 ```json
 {
   "success": false,
-  "message": "Ungültige Anfrageparameter",
-  "errors": [
+  "error": "Ungültige Eingabedaten",
+  "details": [
     {
-      "code": "invalid_type",
-      "expected": "string",
-      "received": "undefined",
-      "path": ["name"],
-      "message": "Required"
+      "code": "invalid_url",
+      "message": "URL muss gültig sein"
     }
   ]
 }
 ```
 
-**Authentication Error (401):**
+**Extraction Error (500):**
 
 ```json
 {
   "success": false,
-  "message": "Authentifizierung erforderlich"
+  "error": "Fehler beim Extrahieren der URL-Details"
 }
 ```
 
-**Not Found Error (404):**
+**Usage in Frontend:**
 
-```json
-{
-  "success": false,
-  "message": "Wunschliste nicht gefunden"
-}
-```
-
-**Server Error (500):**
-
-```json
-{
-  "success": false,
-  "message": "Fehler beim Laden der Wunschliste",
-  "error": "Detailed error message"
-}
-```
-
-## Notes
-
-- All UUIDs are validated using Zod schemas
-- Timestamps are stored as JavaScript Date objects in SQLite
-- Foreign key constraints ensure data integrity (cascade delete for wishlist items when parent wishlist is deleted)
-- All endpoints require authentication via better-auth
-- German language is used for all user-facing messages
-- Pagination is implemented consistently across list endpoints
-- Special PATCH endpoints are available for toggling purchase and active status individually
+The URL extraction feature is integrated into the wishlist item forms with a magic button (✨) next to the URL input field. When clicked, it automatically fetches product details and pre-fills the form fields, while still allowing users to modify the extracted information before submitting.

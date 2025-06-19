@@ -22,6 +22,7 @@
         submit-loading-text="Speichern..."
         field-prefix="edit"
         @submit="handleSubmit"
+        @update:form-data="updateFormData"
       />
     </DialogContent>
   </Dialog>
@@ -161,6 +162,11 @@ const resetForm = () => {
   formData.imageUrl = ''
   formData.priority = '3'
   formData.notes = ''
+}
+
+// Update form data from magic button
+const updateFormData = (newFormData: typeof formData) => {
+  Object.assign(formData, newFormData)
 }
 
 // Handle form submission

@@ -36,3 +36,71 @@ export function formatDate(date: Date | string): string {
     day: 'numeric',
   })
 }
+
+/**
+ * Check if URL is from a known e-commerce site and return site-specific patterns
+ */
+export function getEcommerceSiteInfo(url: string): {
+  siteName: string
+  titlePatterns?: RegExp[]
+  pricePatterns?: RegExp[]
+  imagePatterns?: RegExp[]
+} {
+  const hostname = new URL(url).hostname.toLowerCase()
+
+  if (hostname.includes('amazon.')) {
+    return {
+      siteName: 'Amazon',
+      titlePatterns: [
+        /<span\s+id="productTitle"[^>]*>([^<]+)</i,
+        /<h1[^>]*>([^<]+)</i,
+      ],
+      pricePatterns: [
+        /<span\s+class="a-price-whole">([0-9.,]+)</i,
+        /<span\s+class="a-offscreen">€([0-9.,]+)</i,
+        /<span\s+class="a-price"[^>]*>.*?€([0-9.,]+)</i,
+      ],
+      imagePatterns: [
+        /<img[^>]+id="landingImage"[^>]+src="([^"]+)"/i,
+        /<img[^>]+data-old-hires="([^"]+)"/i,
+      ],
+    }
+  }
+
+  if (hostname.includes('ebay.')) {
+    return {
+      siteName: 'eBay',
+      titlePatterns: [
+        /<h1[^>]*id="it-ttl"[^>]*>([^<]+)</i,
+        /<h1[^>]*>([^<]+)</i,
+      ],
+      pricePatterns: [
+        /<span[^>]*id="notranslate"[^>]*>EUR ([0-9.,]+)</i,
+        /EUR\s+([0-9.,]+)/i,
+      ],
+    }
+  }
+
+  if (hostname.includes('otto.de')) {
+    return {
+      siteName: 'Otto',
+      pricePatterns: [
+        /<span[^>]*class="[^"]*price[^"]*"[^>]*>([0-9.,]+)[^€]*€</i,
+      ],
+    }
+  }
+
+  if (hostname.includes('zalando.')) {
+    return {
+      siteName: 'Zalando',
+      pricePatterns: [
+        /<span[^>]*class="[^"]*price[^"]*"[^>]*>([0-9.,]+)\s*€</i,
+      ],
+    }
+  }
+
+  // Default patterns for unknown sites
+  return {
+    siteName: 'Unknown',
+  }
+}

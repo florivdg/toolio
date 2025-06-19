@@ -15,13 +15,27 @@
 
     <div class="space-y-2">
       <Label :for="`${fieldPrefix}-url`">Link/URL *</Label>
-      <Input
-        :id="`${fieldPrefix}-url`"
-        v-model="formData.url"
-        type="url"
-        placeholder="https://example.com/artikel"
-        required
-      />
+      <div class="flex gap-2">
+        <Input
+          :id="`${fieldPrefix}-url`"
+          v-model="formData.url"
+          type="url"
+          placeholder="https://example.com/artikel"
+          required
+          class="flex-1"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          @click="extractUrlDetails"
+          :disabled="!formData.url.trim() || isExtracting"
+          title="Produktdetails automatisch extrahieren"
+        >
+          <Sparkles v-if="!isExtracting" class="h-4 w-4" />
+          <Loader2 v-else class="h-4 w-4 animate-spin" />
+        </Button>
+      </div>
     </div>
 
     <!-- Collapsible section for optional fields -->
@@ -165,7 +179,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Star, ChevronDown } from 'lucide-vue-next'
+import { Star, ChevronDown, Sparkles, Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -195,6 +210,14 @@ interface FormData {
   notes: string
 }
 
+interface ExtractedData {
+  name?: string
+  description?: string
+  price?: number
+  imageUrl?: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
 // Props
 interface Props {
   formData: FormData
@@ -207,12 +230,93 @@ interface Props {
 const props = defineProps<Props>()
 
 // Emits
-defineEmits<{
+const emit = defineEmits<{
   submit: []
+  'update:formData': [formData: FormData]
 }>()
 
 // State
 const showAdvancedFields = ref(false)
+const isExtracting = ref(false)
+
+// Methods
+async function extractUrlDetails() {
+  if (!props.formData.url.trim()) {
+    toast.error('Bitte geben Sie zuerst eine URL ein')
+    return
+  }
+
+  isExtracting.value = true
+
+  try {
+    const response = await fetch('/api/wishlists/extract-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: props.formData.url,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Fehler beim Extrahieren der URL-Details')
+    }
+
+    const extractedData: ExtractedData = result.data
+
+    // Update form data with extracted information
+    const updatedFormData = { ...props.formData }
+
+    if (extractedData.name && !updatedFormData.name.trim()) {
+      updatedFormData.name = extractedData.name
+    }
+
+    if (extractedData.description && !updatedFormData.description.trim()) {
+      updatedFormData.description = extractedData.description
+    }
+
+    if (extractedData.price && !updatedFormData.price.trim()) {
+      updatedFormData.price = extractedData.price.toString()
+    }
+
+    if (extractedData.imageUrl && !updatedFormData.imageUrl.trim()) {
+      updatedFormData.imageUrl = extractedData.imageUrl
+    }
+
+    emit('update:formData', updatedFormData)
+
+    // Show success message based on confidence
+    const confidenceMessages = {
+      high: 'Produktdetails erfolgreich extrahiert! 🎉',
+      medium:
+        'Einige Produktdetails gefunden. Bitte überprüfen Sie die Angaben.',
+      low: 'Wenige Details gefunden. Bitte ergänzen Sie die fehlenden Informationen.',
+    }
+
+    toast.success(confidenceMessages[extractedData.confidence])
+
+    // Automatically expand advanced fields if we extracted optional data
+    if (
+      extractedData.description ||
+      extractedData.price ||
+      extractedData.imageUrl
+    ) {
+      showAdvancedFields.value = true
+    }
+  } catch (error) {
+    console.error('Error extracting URL details:', error)
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : 'Fehler beim Extrahieren der URL-Details',
+    )
+  } finally {
+    isExtracting.value = false
+  }
+}
 
 // Computed
 const isFormValid = computed(() => {
