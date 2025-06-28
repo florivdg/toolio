@@ -38,14 +38,14 @@
           <p class="font-semibold">Fehler beim Laden der Wishlists</p>
           <p class="text-muted-foreground text-sm">{{ error }}</p>
         </div>
-        <Button @click="fetchWishlists" variant="outline" class="mt-4">
+        <Button @click="resetAndRefetch" variant="outline" class="mt-4">
           Erneut versuchen
         </Button>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="wishlists.length === 0" class="py-12 text-center">
+    <div v-else-if="allWishlists.length === 0" class="py-12 text-center">
       <div class="space-y-4">
         <FileText class="text-muted-foreground/50 mx-auto h-16 w-16" />
         <div class="space-y-2">
@@ -67,7 +67,7 @@
       <!-- Grid -->
       <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Card
-          v-for="wishlist in wishlists"
+          v-for="wishlist in allWishlists"
           :key="wishlist.id"
           class="cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
           @click="navigateToWishlist(wishlist.id)"
@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Card,
@@ -172,6 +172,7 @@ import { Badge } from '@/components/ui/badge'
 import CreateWishlistModal from './CreateWishlistModal.vue'
 import { AlertCircle, FileText, Package } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import { useWishlistsQuery, type WishlistWithItems } from '@/lib/wishlists/queries'
 
 // Vue Router
 const router = useRouter()
@@ -179,100 +180,84 @@ const router = useRouter()
 // Inject sidebar refresh function
 const refreshSidebar = inject<() => void>('refreshSidebar')
 
-// Types
-interface WishlistItem {
-  id: string
-  name: string
-  imageUrl?: string
-  url: string
-  price?: number
-}
-
-interface Wishlist {
-  id: string
-  name: string
-  description?: string
-  createdAt: Date | string
-  updatedAt?: Date | string
-  itemCount?: number
-  latestItems?: WishlistItem[]
-}
-
-interface WishlistsResponse {
-  success: boolean
-  data: Wishlist[]
-  pagination: {
-    limit: number
-    offset: number
-    total: number
-    hasMore: boolean
-  }
-}
-
-// Reactive state
-const wishlists = ref<Wishlist[]>([])
-const loading = ref(true)
-const loadingMore = ref(false)
-const error = ref<string | null>(null)
-const hasMore = ref(false)
-const currentOffset = ref(0)
+// Pagination state
 const limit = 12
+const currentOffset = ref(0)
+const loadingMore = ref(false)
 
-// Fetch wishlists from API
-const fetchWishlists = async (offset = 0, replace = true) => {
+// Accumulated results for load more functionality
+const allWishlists = ref<WishlistWithItems[]>([])
+
+// Primary query for the first page
+const { 
+  data: initialData, 
+  isLoading: initialLoading, 
+  error: initialError, 
+  refetch: refetchInitial 
+} = useWishlistsQuery(limit, 0)
+
+// Computed values
+const loading = computed(() => initialLoading.value)
+const error = computed(() => initialError.value?.message || null)
+const hasMore = computed(() => {
+  if (!initialData.value) return false
+  const currentTotal = allWishlists.value.length
+  return currentTotal < initialData.value.pagination.total
+})
+
+// Initialize with first page data
+onMounted(() => {
+  if (initialData.value?.data) {
+    allWishlists.value = [...initialData.value.data]
+  }
+})
+
+// Watch for initial data changes
+import { watch } from 'vue'
+watch(initialData, (newData) => {
+  if (newData?.data) {
+    allWishlists.value = [...newData.data]
+    currentOffset.value = 0
+  }
+}, { deep: true })
+
+// Handle wishlist created event from modal
+const handleWishlistCreated = (wishlist: WishlistWithItems) => {
+  // Add new wishlist to the beginning of the list
+  allWishlists.value.unshift(wishlist)
+
+  // Refresh sidebar to show new wishlist  
+  refreshSidebar?.()
+}
+
+// Load more wishlists - use direct fetch for additional pages
+const loadMore = async () => {
+  if (loadingMore.value || !hasMore.value) return
+  
+  loadingMore.value = true
+  const newOffset = allWishlists.value.length
+  
   try {
-    if (offset === 0) {
-      loading.value = true
-    } else {
-      loadingMore.value = true
-    }
-
-    error.value = null
-
-    const response = await fetch(
-      `/api/wishlists?limit=${limit}&offset=${offset}`,
-    )
-
+    const response = await fetch(`/api/wishlists?limit=${limit}&offset=${newOffset}`)
+    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const data: WishlistsResponse = await response.json()
-
+    const data = await response.json()
+    
     if (!data.success) {
       throw new Error('API returned success: false')
     }
 
-    if (replace) {
-      wishlists.value = data.data
-    } else {
-      wishlists.value.push(...data.data)
-    }
-
-    hasMore.value = data.pagination.hasMore
-    currentOffset.value = offset + data.data.length
+    // Append new items
+    allWishlists.value.push(...data.data)
+    currentOffset.value = newOffset
   } catch (err) {
-    console.error('Error fetching wishlists:', err)
-    error.value = err instanceof Error ? err.message : 'Unbekannter Fehler'
+    console.error('Error loading more wishlists:', err)
+    toast.error('Fehler beim Laden weiterer Wishlists')
   } finally {
-    loading.value = false
     loadingMore.value = false
-  }
-}
-
-// Handle wishlist created event from modal
-const handleWishlistCreated = (wishlist: Wishlist) => {
-  // Add new wishlist to the beginning of the list
-  wishlists.value.unshift(wishlist)
-
-  // Refresh sidebar to show new wishlist
-  refreshSidebar?.()
-}
-
-// Load more wishlists
-const loadMore = () => {
-  if (!loadingMore.value && hasMore.value) {
-    fetchWishlists(currentOffset.value, false)
   }
 }
 
@@ -281,8 +266,10 @@ const navigateToWishlist = (wishlistId: string) => {
   router.push(`/tools/wishlists/${wishlistId}`)
 }
 
-// Initialize component
-onMounted(() => {
-  fetchWishlists()
-})
+// Reset function for error recovery
+const resetAndRefetch = async () => {
+  currentOffset.value = 0
+  allWishlists.value = []
+  await refetchInitial()
+}
 </script>
