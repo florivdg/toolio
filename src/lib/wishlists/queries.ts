@@ -321,7 +321,7 @@ export function useUpdateWishlistItemStatusMutation() {
       value: boolean;
     }) => 
       fetch(`/api/wishlists/${wishlistId}/items/${itemId}/${status}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [status === 'active' ? 'isActive' : 'isPurchased']: value }),
       })
