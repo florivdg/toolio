@@ -173,7 +173,6 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       JSON.stringify({
         success: false,
         message: 'Fehler beim Verschieben des Artikels',
-        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
