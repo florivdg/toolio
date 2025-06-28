@@ -308,6 +308,15 @@
                         Bearbeiten
                       </DropdownMenuItem>
 
+                      <!-- Move Action -->
+                      <DropdownMenuItem
+                        @click="openMoveItemDialog(item)"
+                        class="cursor-pointer"
+                      >
+                        <ArrowRight class="mr-2 h-4 w-4" />
+                        In andere Wunschliste verschieben
+                      </DropdownMenuItem>
+
                       <DropdownMenuSeparator />
 
                       <!-- Purchase Toggle -->
