@@ -427,6 +427,50 @@ Update the active status of a specific wishlist item.
 }
 ```
 
+### 8. Move Wishlist Item
+
+**PATCH** `/api/wishlists/{wishlistId}/items/{itemId}/move`
+
+Move a wishlist item to another wishlist.
+
+**Request Body:**
+
+```json
+{
+  "targetWishlistId": "uuid (required)"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Artikel erfolgreich verschoben",
+  "data": {
+    "id": "uuid",
+    "wishlistId": "uuid",
+    "name": "string",
+    "description": "string",
+    "price": "number",
+    "url": "string",
+    "imageUrl": "string",
+    "isActive": "boolean",
+    "isPurchased": "boolean",
+    "priority": "number",
+    "notes": "string",
+    "createdAt": "timestamp",
+    "updatedAt": "timestamp"
+  }
+}
+```
+
+**Error Responses:**
+
+- `404` - Source wishlist, target wishlist, or item not found
+- `400` - Target wishlist is the same as source wishlist
+- `400` - Invalid request parameters
+
 ## URL Extraction Endpoint
 
 ### Extract Product Details from URL

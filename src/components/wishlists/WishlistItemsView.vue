@@ -31,6 +31,16 @@
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-48">
               <DropdownMenuItem
+                @click="openEditWishlistModal"
+                class="cursor-pointer"
+              >
+                <Edit2 class="mr-2 h-4 w-4" />
+                Wishlist bearbeiten
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem
                 @click="confirmDeleteWishlist"
                 class="text-destructive focus:text-destructive cursor-pointer"
               >
@@ -298,6 +308,15 @@
                         Bearbeiten
                       </DropdownMenuItem>
 
+                      <!-- Move Action -->
+                      <DropdownMenuItem
+                        @click="openMoveItemDialog(item)"
+                        class="cursor-pointer"
+                      >
+                        <ArrowRight class="mr-2 h-4 w-4" />
+                        In andere Wunschliste verschieben
+                      </DropdownMenuItem>
+
                       <DropdownMenuSeparator />
 
                       <!-- Purchase Toggle -->
@@ -494,6 +513,15 @@
                           Bearbeiten
                         </DropdownMenuItem>
 
+                        <!-- Move Action -->
+                        <DropdownMenuItem
+                          @click="openMoveItemDialog(item)"
+                          class="cursor-pointer"
+                        >
+                          <ArrowRight class="mr-2 h-4 w-4" />
+                          In andere Wunschliste verschieben
+                        </DropdownMenuItem>
+
                         <DropdownMenuSeparator />
 
                         <!-- Purchase Toggle -->
@@ -584,6 +612,22 @@
       @update:model-value="handleEditModalClose"
     />
 
+    <!-- Edit Wishlist Modal -->
+    <EditWishlistModal
+      v-if="wishlistData"
+      :wishlist="wishlistData"
+      v-model="isEditWishlistModalOpen"
+      :show-trigger="false"
+      @updated="onWishlistUpdated"
+    />
+
+    <!-- Move Item Dialog -->
+    <MoveWishlistItemDialog
+      :item="moveItemDialog.item"
+      v-model="moveItemDialog.open"
+      @moved="onItemMoved"
+    />
+
     <!-- Delete Confirmation Dialog -->
     <AlertDialog v-model:open="deleteDialog.open">
       <AlertDialogContent>
@@ -668,6 +712,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import CreateWishlistItemModal from './CreateWishlistItemModal.vue'
 import EditWishlistItemModal from './EditWishlistItemModal.vue'
+import EditWishlistModal from './EditWishlistModal.vue'
+import MoveWishlistItemDialog from './MoveWishlistItemDialog.vue'
 import { toast } from 'vue-sonner'
 import { formatPrice, handleImageError } from '@/lib/wishlists/helpers'
 import {
@@ -684,6 +730,7 @@ import {
   Edit2,
   MoreHorizontal,
   Trash2,
+  ArrowRight,
 } from 'lucide-vue-next'
 
 interface WishlistItem {
@@ -754,6 +801,15 @@ const deleteDialog = ref({
 const deleteWishlistDialog = ref({
   open: false,
   loading: false,
+})
+
+// Edit wishlist modal state
+const isEditWishlistModalOpen = ref(false)
+
+// Move item dialog state
+const moveItemDialog = ref({
+  open: false,
+  item: null as WishlistItem | null,
 })
 
 // Create a default item for when no item is being edited
@@ -930,6 +986,11 @@ const openEditModal = (item: WishlistItem) => {
   isEditModalOpen.value = true
 }
 
+const openMoveItemDialog = (item: WishlistItem) => {
+  moveItemDialog.value.item = item
+  moveItemDialog.value.open = true
+}
+
 const handleEditModalClose = (isOpen: boolean) => {
   isEditModalOpen.value = isOpen
   if (!isOpen) {
@@ -971,6 +1032,20 @@ const onItemUpdated = (updatedItem: WishlistItem) => {
   if (itemIndex !== -1) {
     items.value[itemIndex] = updatedItem
   }
+}
+
+const onItemMoved = (movedItem: WishlistItem) => {
+  // Remove the item from the current list since it was moved to another wishlist
+  items.value = items.value.filter((item) => item.id !== movedItem.id)
+  
+  // Update pagination total
+  pagination.value.total = Math.max(0, pagination.value.total - 1)
+  
+  // Close the move dialog
+  moveItemDialog.value.open = false
+  moveItemDialog.value.item = null
+  
+  toast.success('Artikel erfolgreich verschoben!')
 }
 
 // Confirm delete item
@@ -1030,6 +1105,17 @@ const deleteItem = async () => {
 // Confirm delete wishlist
 const confirmDeleteWishlist = () => {
   deleteWishlistDialog.value.open = true
+}
+
+// Open edit wishlist modal
+const openEditWishlistModal = () => {
+  isEditWishlistModalOpen.value = true
+}
+
+// Handle wishlist updated
+const onWishlistUpdated = (updatedWishlist: Wishlist) => {
+  wishlistData.value = updatedWishlist
+  toast.success('Wishlist erfolgreich aktualisiert!')
 }
 
 // Delete wishlist
