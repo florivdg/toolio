@@ -31,6 +31,16 @@
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-48">
               <DropdownMenuItem
+                @click="openEditWishlistModal"
+                class="cursor-pointer"
+              >
+                <Edit2 class="mr-2 h-4 w-4" />
+                Wishlist bearbeiten
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem
                 @click="confirmDeleteWishlist"
                 class="text-destructive focus:text-destructive cursor-pointer"
               >
@@ -584,6 +594,15 @@
       @update:model-value="handleEditModalClose"
     />
 
+    <!-- Edit Wishlist Modal -->
+    <EditWishlistModal
+      v-if="wishlistData"
+      :wishlist="wishlistData"
+      v-model="isEditWishlistModalOpen"
+      :show-trigger="false"
+      @updated="onWishlistUpdated"
+    />
+
     <!-- Delete Confirmation Dialog -->
     <AlertDialog v-model:open="deleteDialog.open">
       <AlertDialogContent>
@@ -668,6 +687,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import CreateWishlistItemModal from './CreateWishlistItemModal.vue'
 import EditWishlistItemModal from './EditWishlistItemModal.vue'
+import EditWishlistModal from './EditWishlistModal.vue'
 import { toast } from 'vue-sonner'
 import { formatPrice, handleImageError } from '@/lib/wishlists/helpers'
 import {
@@ -755,6 +775,9 @@ const deleteWishlistDialog = ref({
   open: false,
   loading: false,
 })
+
+// Edit wishlist modal state
+const isEditWishlistModalOpen = ref(false)
 
 // Create a default item for when no item is being edited
 const defaultItem: WishlistItem = {
@@ -1030,6 +1053,17 @@ const deleteItem = async () => {
 // Confirm delete wishlist
 const confirmDeleteWishlist = () => {
   deleteWishlistDialog.value.open = true
+}
+
+// Open edit wishlist modal
+const openEditWishlistModal = () => {
+  isEditWishlistModalOpen.value = true
+}
+
+// Handle wishlist updated
+const onWishlistUpdated = (updatedWishlist: Wishlist) => {
+  wishlistData.value = updatedWishlist
+  toast.success('Wishlist erfolgreich aktualisiert!')
 }
 
 // Delete wishlist
