@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.1
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.2.0...v0.2.1)
+
+### 🩹 Fixes
+
+- **wishlists:** Improve styling and error handling in MoveWishlistItemDialog #9 ([#9](https://github.com/florivdg/toolio/issues/9))
+
+### 💅 Refactors
+
+- **wishlists:** Make WishlistModal for creating and editing wishlists more DRY #9 ([#9](https://github.com/florivdg/toolio/issues/9))
+
+### 🏡 Chore
+
+- Remove package-lock.json ([8a040f8](https://github.com/florivdg/toolio/commit/8a040f8))
+- Update dependencies in package.json ([84d33f2](https://github.com/florivdg/toolio/commit/84d33f2))
+
+### ❤️ Contributors
+
+- Florian Van Der Galiën <hallo@flori.dev>
+
 ## v0.2.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.1.0...v0.2.0)
