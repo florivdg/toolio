@@ -10,14 +10,14 @@
       <div class="space-y-4">
         <div class="space-y-2">
           <Label for="target-wishlist">Ziel-Wunschliste</Label>
-          <Select v-model="selectedWishlistId">
-            <SelectTrigger>
+          <Select v-model="selectedWishlistId" class="w-full">
+            <SelectTrigger class="w-full">
               <SelectValue placeholder="Wunschliste auswählen..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem 
-                v-for="list in availableWishlists" 
-                :key="list.id" 
+              <SelectItem
+                v-for="list in availableWishlists"
+                :key="list.id"
                 :value="list.id"
               >
                 {{ list.name }}
@@ -29,10 +29,7 @@
           <DialogClose asChild>
             <Button type="button" variant="outline">Abbrechen</Button>
           </DialogClose>
-          <Button 
-            @click="moveItem"
-            :disabled="!selectedWishlistId || isMoving"
-          >
+          <Button @click="moveItem" :disabled="!selectedWishlistId || isMoving">
             <span v-if="isMoving">Verschieben...</span>
             <span v-else>Verschieben</span>
           </Button>
@@ -149,17 +146,17 @@ watch(isOpen, (newValue) => {
 const fetchWishlists = async () => {
   try {
     const response = await fetch('/api/wishlists')
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
     const data = await response.json()
-    
+
     if (data.success && data.data) {
       // Filter out the current wishlist
       availableWishlists.value = data.data.filter(
-        (wishlist: Wishlist) => wishlist.id !== props.item?.wishlistId
+        (wishlist: Wishlist) => wishlist.id !== props.item?.wishlistId,
       )
     } else {
       throw new Error(data.message || 'Fehler beim Laden der Wunschlisten')
@@ -167,7 +164,7 @@ const fetchWishlists = async () => {
   } catch (err) {
     console.error('Error fetching wishlists:', err)
     toast.error(
-      err instanceof Error ? err.message : 'Fehler beim Laden der Wunschlisten'
+      err instanceof Error ? err.message : 'Fehler beim Laden der Wunschlisten',
     )
   }
 }
@@ -193,7 +190,7 @@ const moveItem = async () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestData),
-      }
+      },
     )
 
     if (!response.ok) {
@@ -214,7 +211,9 @@ const moveItem = async () => {
   } catch (err) {
     console.error('Error moving item:', err)
     toast.error(
-      err instanceof Error ? err.message : 'Fehler beim Verschieben des Artikels'
+      err instanceof Error
+        ? err.message
+        : 'Fehler beim Verschieben des Artikels',
     )
   } finally {
     isMoving.value = false
