@@ -211,8 +211,6 @@ const moveItem = async () => {
 
     // Close dialog
     isOpen.value = false
-
-    toast.success('Artikel erfolgreich verschoben!')
   } catch (err) {
     console.error('Error moving item:', err)
     toast.error(
