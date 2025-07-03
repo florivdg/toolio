@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryCache } from '@pinia/colada'
 import { wishlistKeys } from './queryKeys'
 import type { Wishlist, WishlistItem } from '@/db/schema/wishlists'
+import type { MaybeRefOrGetter } from 'vue'
+import { toValue } from 'vue'
 
 // Extended types for API responses
 export interface WishlistWithItems extends Wishlist {
@@ -90,11 +92,12 @@ export function useWishlistsQuery(limit = 20, offset = 0) {
   })
 }
 
-export function useWishlistQuery(id: string) {
+export function useWishlistQuery(id: MaybeRefOrGetter<string>) {
   return useQuery({
-    key: wishlistKeys.detail(id),
-    query: () => 
-      fetch(`/api/wishlists/${id}`)
+    key: () => wishlistKeys.detail(toValue(id)),
+    query: () => {
+      const idValue = toValue(id)
+      return fetch(`/api/wishlists/${idValue}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${res.statusText}`)
@@ -106,16 +109,18 @@ export function useWishlistQuery(id: string) {
             throw new Error('API returned success: false')  
           }
           return data.data
-        }),
+        })
+    },
     staleTime: 60000,
   })
 }
 
-export function useWishlistItemsQuery(wishlistId: string, limit = 20, offset = 0) {
+export function useWishlistItemsQuery(wishlistId: MaybeRefOrGetter<string>, limit = 20, offset = 0) {
   return useQuery({
-    key: wishlistKeys.itemsWithFilters(wishlistId, { limit, offset }),
-    query: () => 
-      fetch(`/api/wishlists/${wishlistId}/items?limit=${limit}&offset=${offset}`)
+    key: () => wishlistKeys.itemsWithFilters(toValue(wishlistId), { limit, offset }),
+    query: () => {
+      const wishlistIdValue = toValue(wishlistId)
+      return fetch(`/api/wishlists/${wishlistIdValue}/items?limit=${limit}&offset=${offset}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${res.statusText}`)
@@ -127,7 +132,8 @@ export function useWishlistItemsQuery(wishlistId: string, limit = 20, offset = 0
             throw new Error('API returned success: false')
           }
           return data
-        }),
+        })
+    },
     staleTime: 60000,
   })
 }
@@ -359,9 +365,9 @@ export function useMoveWishlistItemMutation() {
       itemId: string 
     }) => 
       fetch(`/api/wishlists/${fromWishlistId}/items/${itemId}/move`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toWishlistId }),
+        body: JSON.stringify({ targetWishlistId: toWishlistId }),
       })
       .then(res => {
         if (!res.ok) {

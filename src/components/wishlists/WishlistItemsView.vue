@@ -682,7 +682,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, inject } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -746,8 +746,6 @@ const router = useRouter()
 const route = useRoute()
 const wishlistId = computed(() => route.params.id as string)
 
-// Inject sidebar refresh function
-const refreshSidebar = inject<() => void>('refreshSidebar')
 
 // UI State
 const filter = ref('all')
@@ -785,14 +783,14 @@ const {
   data: wishlistData, 
   isLoading: wishlistLoading,
   error: wishlistError 
-} = useWishlistQuery(wishlistId.value)
+} = useWishlistQuery(wishlistId)
 
 const { 
   data: itemsData, 
   isLoading: itemsLoading, 
   error: itemsError,
   refetch: refetchItems 
-} = useWishlistItemsQuery(wishlistId.value, pagination.value.limit, pagination.value.offset)
+} = useWishlistItemsQuery(wishlistId, pagination.value.limit, pagination.value.offset)
 
 // Mutations
 const deleteWishlistMutation = useDeleteWishlistMutation()
@@ -1023,9 +1021,6 @@ const deleteWishlist = async () => {
 
     // Show success message
     toast.success('Wishlist erfolgreich gelöscht')
-
-    // Refresh sidebar to remove deleted wishlist
-    refreshSidebar?.()
 
     // Navigate back to wishlists overview
     router.push('/tools/wishlists')

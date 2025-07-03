@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, computed } from 'vue'
+import { computed } from 'vue'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { FileText, List } from 'lucide-vue-next'
@@ -11,14 +11,6 @@ const { data, isLoading, error, refetch } = useWishlistsQuery(50, 0) // Get more
 // Computed values for cleaner template usage
 const wishlists = computed(() => data.value?.data || [])
 const loading = computed(() => isLoading.value)
-
-// Refresh sidebar when wishlists change
-const refreshSidebar = () => {
-  refetch()
-}
-
-// Provide refresh function to child components
-provide('refreshSidebar', refreshSidebar)
 </script>
 
 <template>

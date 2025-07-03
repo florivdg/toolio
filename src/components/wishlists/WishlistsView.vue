@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Card,
@@ -177,8 +177,6 @@ import { useWishlistsQuery, type WishlistWithItems } from '@/lib/wishlists/queri
 // Vue Router
 const router = useRouter()
 
-// Inject sidebar refresh function
-const refreshSidebar = inject<() => void>('refreshSidebar')
 
 // Pagination state
 const limit = 12
@@ -225,9 +223,6 @@ watch(initialData, (newData) => {
 const handleWishlistCreated = (wishlist: WishlistWithItems) => {
   // Add new wishlist to the beginning of the list
   allWishlists.value.unshift(wishlist)
-
-  // Refresh sidebar to show new wishlist  
-  refreshSidebar?.()
 }
 
 // Load more wishlists - use direct fetch for additional pages
