@@ -71,27 +71,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'vue-sonner'
-
-// Types
-interface Wishlist {
-  id: string
-  name: string
-  description?: string
-  createdAt: Date | string
-  updatedAt?: Date | string
-  itemCount?: number
-}
-
-interface WishlistRequest {
-  name: string
-  description?: string
-}
-
-interface WishlistResponse {
-  success: boolean
-  data?: Wishlist
-  message?: string
-}
+import { useCreateWishlistMutation, useUpdateWishlistMutation } from '@/lib/wishlists/queries'
+import type { Wishlist } from '@/db/schema/wishlists'
 
 // Props
 interface Props {
@@ -147,14 +128,6 @@ const descriptionInputId = computed(() =>
   isEditMode.value ? 'edit-description' : 'description',
 )
 
-const apiEndpoint = computed(() =>
-  isEditMode.value && props.wishlist?.id
-    ? `/api/wishlists/${props.wishlist.id}`
-    : '/api/wishlists',
-)
-
-const httpMethod = computed(() => (isEditMode.value ? 'PUT' : 'POST'))
-
 const successMessage = computed(() =>
   isEditMode.value
     ? 'Wishlist erfolgreich aktualisiert!'
@@ -174,6 +147,10 @@ const formData = reactive({
   name: '',
   description: '',
 })
+
+// Pinia Colada mutations
+const createWishlistMutation = useCreateWishlistMutation()
+const updateWishlistMutation = useUpdateWishlistMutation()
 
 // Watch for external changes to modelValue
 watch(
@@ -234,37 +211,24 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true
 
-    const requestData: WishlistRequest = {
+    const requestData = {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
     }
 
-    const fetchOptions: RequestInit = {
-      method: httpMethod.value,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-
-    // Only add body for non-GET requests
-    if (httpMethod.value !== 'GET') {
-      fetchOptions.body = JSON.stringify(requestData)
-    }
-
-    const response = await fetch(apiEndpoint.value, fetchOptions)
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: WishlistResponse = await response.json()
-
-    if (!data.success || !data.data) {
-      throw new Error(data.message || errorMessage.value)
+    let result: Wishlist
+    
+    if (isEditMode.value) {
+      result = await updateWishlistMutation.mutate({
+        id: props.wishlist!.id,
+        data: requestData,
+      })
+    } else {
+      result = await createWishlistMutation.mutate(requestData)
     }
 
     // Emit the success event with the wishlist data
-    emit('success', data.data)
+    emit('success', result)
 
     // Reset form and close dialog
     if (!isEditMode.value) {

@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -60,41 +60,8 @@ import {
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
-
-// Types
-interface WishlistItem {
-  id: string
-  wishlistId: string
-  name: string
-  description?: string
-  price?: number
-  url: string
-  imageUrl?: string
-  isActive: boolean
-  isPurchased: boolean
-  priority?: number
-  notes?: string
-  createdAt: string
-  updatedAt?: string
-}
-
-interface Wishlist {
-  id: string
-  name: string
-  description?: string
-  createdAt: string
-  updatedAt?: string
-}
-
-interface MoveItemRequest {
-  targetWishlistId: string
-}
-
-interface MoveItemResponse {
-  success: boolean
-  data?: WishlistItem
-  message?: string
-}
+import { useWishlistsQuery, useMoveWishlistItemMutation } from '@/lib/wishlists/queries'
+import type { WishlistItem } from '@/db/schema/wishlists'
 
 // Props
 interface Props {
@@ -118,7 +85,18 @@ const emit = defineEmits<Emits>()
 const isOpen = ref(props.modelValue)
 const isMoving = ref(false)
 const selectedWishlistId = ref('')
-const availableWishlists = ref<Wishlist[]>([])
+
+// Pinia Colada queries and mutations
+const { state: wishlistsState } = useWishlistsQuery(50, 0)
+const moveItemMutation = useMoveWishlistItemMutation()
+
+// Computed available wishlists (excluding current wishlist)
+const availableWishlists = computed(() => {
+  if (!wishlistsState.value.data?.data || !props.item) return []
+  return wishlistsState.value.data.data.filter(
+    (wishlist) => wishlist.id !== props.item?.wishlistId
+  )
+})
 
 // Watch for external changes to modelValue
 watch(
@@ -126,8 +104,6 @@ watch(
   (newValue) => {
     isOpen.value = newValue
     if (newValue) {
-      // Fetch available wishlists when modal opens
-      fetchWishlists()
       selectedWishlistId.value = ''
     }
   },
@@ -142,32 +118,6 @@ watch(isOpen, (newValue) => {
   }
 })
 
-// Fetch all wishlists for selection
-const fetchWishlists = async () => {
-  try {
-    const response = await fetch('/api/wishlists')
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-
-    if (data.success && data.data) {
-      // Filter out the current wishlist
-      availableWishlists.value = data.data.filter(
-        (wishlist: Wishlist) => wishlist.id !== props.item?.wishlistId,
-      )
-    } else {
-      throw new Error(data.message || 'Fehler beim Laden der Wunschlisten')
-    }
-  } catch (err) {
-    console.error('Error fetching wishlists:', err)
-    toast.error(
-      err instanceof Error ? err.message : 'Fehler beim Laden der Wunschlisten',
-    )
-  }
-}
 
 // Move item to selected wishlist
 const moveItem = async () => {
@@ -178,36 +128,19 @@ const moveItem = async () => {
   try {
     isMoving.value = true
 
-    const requestData: MoveItemRequest = {
-      targetWishlistId: selectedWishlistId.value,
-    }
-
-    const response = await fetch(
-      `/api/wishlists/${props.item.wishlistId}/items/${props.item.id}/move`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      },
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: MoveItemResponse = await response.json()
-
-    if (!data.success || !data.data) {
-      throw new Error(data.message || 'Fehler beim Verschieben des Artikels')
-    }
+    const movedItem = await moveItemMutation.mutate({
+      fromWishlistId: props.item.wishlistId,
+      toWishlistId: selectedWishlistId.value,
+      itemId: props.item.id,
+    })
 
     // Emit the moved item
-    emit('moved', data.data)
+    emit('moved', movedItem)
 
     // Close dialog
     isOpen.value = false
+    
+    // Toast success message is handled by parent component
   } catch (err) {
     console.error('Error moving item:', err)
     toast.error(

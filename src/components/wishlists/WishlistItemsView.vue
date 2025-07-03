@@ -74,7 +74,7 @@
       <div class="text-destructive">
         <p class="text-lg font-semibold">Fehler beim Laden</p>
         <p class="text-muted-foreground mt-2">{{ error }}</p>
-        <Button @click="fetchItems" variant="outline" class="mt-4">
+        <Button @click="refetchItems" variant="outline" class="mt-4">
           Nochmal versuchen
         </Button>
       </div>
@@ -574,18 +574,18 @@
 
       <!-- Pagination -->
       <div
-        v-if="pagination.total > pagination.limit"
+        v-if="currentPagination.total > currentPagination.limit"
         class="flex items-center justify-between pt-4"
       >
         <div class="text-muted-foreground text-sm">
-          Zeige {{ pagination.offset + 1 }} bis
-          {{ Math.min(pagination.offset + pagination.limit, pagination.total) }}
-          von {{ pagination.total }} Artikeln
+          Zeige {{ currentPagination.offset + 1 }} bis
+          {{ Math.min(currentPagination.offset + currentPagination.limit, currentPagination.total) }}
+          von {{ currentPagination.total }} Artikeln
         </div>
         <div class="flex gap-2">
           <Button
             @click="loadPreviousPage"
-            :disabled="pagination.offset === 0"
+            :disabled="currentPagination.offset === 0"
             variant="outline"
             size="sm"
           >
@@ -593,7 +593,7 @@
           </Button>
           <Button
             @click="loadNextPage"
-            :disabled="!pagination.hasMore"
+            :disabled="!currentPagination.hasMore"
             variant="outline"
             size="sm"
           >
@@ -682,7 +682,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch, inject } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -717,6 +717,15 @@ import MoveWishlistItemDialog from './MoveWishlistItemDialog.vue'
 import { toast } from 'vue-sonner'
 import { formatPrice, handleImageError } from '@/lib/wishlists/helpers'
 import {
+  useWishlistQuery,
+  useWishlistItemsQuery,
+  useDeleteWishlistMutation,
+  useDeleteWishlistItemMutation,
+  useUpdateWishlistItemStatusMutation,
+  type WishlistWithItems,
+} from '@/lib/wishlists/queries'
+import type { WishlistItem } from '@/db/schema/wishlists'
+import {
   Package,
   ExternalLink,
   CheckCircle,
@@ -733,61 +742,18 @@ import {
   ArrowRight,
 } from 'lucide-vue-next'
 
-interface WishlistItem {
-  id: string
-  wishlistId: string
-  name: string
-  description?: string
-  price?: number
-  url: string
-  imageUrl?: string
-  isActive: boolean
-  isPurchased: boolean
-  priority?: number
-  notes?: string
-  createdAt: string
-  updatedAt?: string
-}
-
-interface Wishlist {
-  id: string
-  name: string
-  description?: string
-  createdAt: string
-  updatedAt?: string
-}
-
-interface ApiResponse {
-  success: boolean
-  data: WishlistItem[]
-  pagination: {
-    limit: number
-    offset: number
-    total: number
-    hasMore: boolean
-  }
-}
-
 const router = useRouter()
 const route = useRoute()
 const wishlistId = computed(() => route.params.id as string)
 
-// Inject sidebar refresh function
-const refreshSidebar = inject<() => void>('refreshSidebar')
 
-// State
-const items = ref<WishlistItem[]>([])
-const wishlistData = ref<Wishlist | null>(null)
-const loading = ref(true)
-const error = ref<string | null>(null)
+// UI State
 const filter = ref('all')
 const editingItem = ref<WishlistItem | null>(null)
 const isEditModalOpen = ref(false)
 const pagination = ref({
   limit: 20,
   offset: 0,
-  total: 0,
-  hasMore: false,
 })
 
 // Delete dialog state
@@ -810,6 +776,37 @@ const isEditWishlistModalOpen = ref(false)
 const moveItemDialog = ref({
   open: false,
   item: null as WishlistItem | null,
+})
+
+// Pinia Colada queries
+const { 
+  data: wishlistData, 
+  isLoading: wishlistLoading,
+  error: wishlistError 
+} = useWishlistQuery(wishlistId)
+
+const { 
+  data: itemsData, 
+  isLoading: itemsLoading, 
+  error: itemsError,
+  refetch: refetchItems 
+} = useWishlistItemsQuery(wishlistId, pagination.value.limit, pagination.value.offset)
+
+// Mutations
+const deleteWishlistMutation = useDeleteWishlistMutation()
+const deleteItemMutation = useDeleteWishlistItemMutation()
+const updateItemStatusMutation = useUpdateWishlistItemStatusMutation()
+
+// Computed properties
+const items = computed(() => itemsData.value?.data || [])
+const loading = computed(() => itemsLoading.value || wishlistLoading.value)
+const error = computed(() => itemsError.value?.message || wishlistError.value?.message || null)
+const hasMore = computed(() => itemsData.value?.pagination?.hasMore || false)
+const currentPagination = computed(() => itemsData.value?.pagination || {
+  limit: 20,
+  offset: 0,
+  total: 0,
+  hasMore: false,
 })
 
 // Create a default item for when no item is being edited
@@ -866,79 +863,21 @@ const activeSum = computed(() => {
     }, 0)
 })
 
-// Methods
-const fetchWishlist = async () => {
-  try {
-    const response = await fetch(`/api/wishlists/${wishlistId.value}`)
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        wishlistData.value = data.data
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching wishlist:', err)
-  }
-}
-
-const fetchItems = async () => {
-  try {
-    loading.value = true
-    error.value = null
-
-    const params = new URLSearchParams({
-      limit: pagination.value.limit.toString(),
-      offset: pagination.value.offset.toString(),
-    })
-
-    const response = await fetch(
-      `/api/wishlists/${wishlistId.value}/items?${params}`,
-    )
-    const data: ApiResponse = await response.json()
-
-    if (data.success) {
-      items.value = data.data
-      pagination.value = data.pagination
-    } else {
-      error.value = 'Fehler beim Laden der Artikel'
-    }
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unbekannter Fehler'
-  } finally {
-    loading.value = false
-  }
-}
-
+// Methods using mutations
 const togglePurchased = async (itemId: string, purchased: boolean) => {
   try {
-    const response = await fetch(
-      `/api/wishlists/${wishlistId.value}/items/${itemId}/purchase`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isPurchased: purchased }),
-      },
+    await updateItemStatusMutation.mutateAsync({
+      wishlistId: wishlistId.value,
+      itemId,
+      status: 'purchase',
+      value: purchased,
+    })
+    
+    toast.success(
+      purchased
+        ? 'Artikel als gekauft markiert!'
+        : 'Artikel als nicht gekauft markiert!',
     )
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        // Update local state
-        const itemIndex = items.value.findIndex((item) => item.id === itemId)
-        if (itemIndex !== -1) {
-          items.value[itemIndex].isPurchased = purchased
-          toast.success(
-            purchased
-              ? 'Artikel als gekauft markiert!'
-              : 'Artikel als nicht gekauft markiert!',
-          )
-        }
-      }
-    } else {
-      toast.error('Fehler beim Aktualisieren des Kaufstatus')
-    }
   } catch (err) {
     console.error('Error updating purchase status:', err)
     toast.error('Fehler beim Aktualisieren des Kaufstatus')
@@ -947,30 +886,18 @@ const togglePurchased = async (itemId: string, purchased: boolean) => {
 
 const toggleActive = async (itemId: string, active: boolean) => {
   try {
-    const response = await fetch(
-      `/api/wishlists/${wishlistId.value}/items/${itemId}/active`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive: active }),
-      },
+    await updateItemStatusMutation.mutateAsync({
+      wishlistId: wishlistId.value,
+      itemId,
+      status: 'active',
+      value: active,
+    })
+    
+    toast.success(
+      active
+        ? 'Artikel aktiviert!'
+        : 'Artikel deaktiviert!',
     )
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        // Update local state
-        const itemIndex = items.value.findIndex((item) => item.id === itemId)
-        if (itemIndex !== -1) {
-          items.value[itemIndex].isActive = active
-          toast.success(active ? 'Artikel aktiviert!' : 'Artikel deaktiviert!')
-        }
-      }
-    } else {
-      toast.error('Fehler beim Aktualisieren des Aktivitätsstatus')
-    }
   } catch (err) {
     console.error('Error updating active status:', err)
     toast.error('Fehler beim Aktualisieren des Aktivitätsstatus')
@@ -999,9 +926,9 @@ const handleEditModalClose = (isOpen: boolean) => {
 }
 
 const loadNextPage = () => {
-  if (pagination.value.hasMore) {
+  if (hasMore.value) {
     pagination.value.offset += pagination.value.limit
-    fetchItems()
+    refetchItems()
   }
 }
 
@@ -1011,36 +938,22 @@ const loadPreviousPage = () => {
       0,
       pagination.value.offset - pagination.value.limit,
     )
-    fetchItems()
+    refetchItems()
   }
 }
 
+// Event handlers for modal callbacks - mutations will handle cache invalidation
 const onItemCreated = (newItem: WishlistItem) => {
-  // Add the new item to the beginning of the list
-  items.value.unshift(newItem)
-
-  // Update pagination total
-  pagination.value.total += 1
-
-  // Optionally refresh the list to ensure consistency
-  // fetchItems()
+  // Mutations handle cache invalidation, so we just show feedback
+  toast.success('Artikel erfolgreich erstellt!')
 }
 
 const onItemUpdated = (updatedItem: WishlistItem) => {
-  // Find and update the item in the list
-  const itemIndex = items.value.findIndex((item) => item.id === updatedItem.id)
-  if (itemIndex !== -1) {
-    items.value[itemIndex] = updatedItem
-  }
+  // Mutations handle cache invalidation, so we just show feedback
+  toast.success('Artikel erfolgreich aktualisiert!')
 }
 
 const onItemMoved = (movedItem: WishlistItem) => {
-  // Remove the item from the current list since it was moved to another wishlist
-  items.value = items.value.filter((item) => item.id !== movedItem.id)
-  
-  // Update pagination total
-  pagination.value.total = Math.max(0, pagination.value.total - 1)
-  
   // Close the move dialog
   moveItemDialog.value.open = false
   moveItemDialog.value.item = null
@@ -1054,37 +967,17 @@ const confirmDeleteItem = (item: WishlistItem) => {
   deleteDialog.value.open = true
 }
 
-// Delete item
+// Delete item using mutation
 const deleteItem = async () => {
   if (!deleteDialog.value.item) return
 
   try {
     deleteDialog.value.loading = true
 
-    const response = await fetch(
-      `/api/wishlists/${wishlistId.value}/items/${deleteDialog.value.item.id}`,
-      {
-        method: 'DELETE',
-      },
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-
-    if (!data.success) {
-      throw new Error(data.message || 'API returned success: false')
-    }
-
-    // Remove item from the list
-    items.value = items.value.filter(
-      (item) => item.id !== deleteDialog.value.item!.id,
-    )
-
-    // Update pagination total
-    pagination.value.total = Math.max(0, pagination.value.total - 1)
+    await deleteItemMutation.mutateAsync({
+      wishlistId: wishlistId.value,
+      itemId: deleteDialog.value.item.id,
+    })
 
     // Show success message
     toast.success('Artikel erfolgreich gelöscht')
@@ -1113,37 +1006,21 @@ const openEditWishlistModal = () => {
 }
 
 // Handle wishlist updated
-const onWishlistUpdated = (updatedWishlist: Wishlist) => {
-  wishlistData.value = updatedWishlist
+const onWishlistUpdated = (updatedWishlist: any) => {
   toast.success('Wishlist erfolgreich aktualisiert!')
 }
 
-// Delete wishlist
+// Delete wishlist using mutation
 const deleteWishlist = async () => {
   if (!wishlistId.value) return
 
   try {
     deleteWishlistDialog.value.loading = true
 
-    const response = await fetch(`/api/wishlists/${wishlistId.value}`, {
-      method: 'DELETE',
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-
-    if (!data.success) {
-      throw new Error(data.message || 'API returned success: false')
-    }
+    await deleteWishlistMutation.mutateAsync(wishlistId.value)
 
     // Show success message
     toast.success('Wishlist erfolgreich gelöscht')
-
-    // Refresh sidebar to remove deleted wishlist
-    refreshSidebar?.()
 
     // Navigate back to wishlists overview
     router.push('/tools/wishlists')
@@ -1159,25 +1036,6 @@ const deleteWishlist = async () => {
     deleteWishlistDialog.value.loading = false
   }
 }
-
-// Watchers
-watch(
-  wishlistId,
-  () => {
-    if (wishlistId.value) {
-      fetchWishlist()
-      fetchItems()
-    }
-  },
-  { immediate: true },
-)
-
-onMounted(() => {
-  if (wishlistId.value) {
-    fetchWishlist()
-    fetchItems()
-  }
-})
 </script>
 
 <style scoped>

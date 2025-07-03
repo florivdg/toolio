@@ -35,45 +35,15 @@ import {
   Dialog,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogScrollContent,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
 import WishlistItemForm from './WishlistItemForm.vue'
-
-// Types
-interface WishlistItem {
-  id: string
-  wishlistId: string
-  name: string
-  description?: string
-  price?: number
-  url: string
-  imageUrl?: string
-  isActive: boolean
-  isPurchased: boolean
-  priority?: number
-  notes?: string
-  createdAt: string
-  updatedAt?: string
-}
-
-interface CreateWishlistItemRequest {
-  name: string
-  description?: string | null
-  price?: number | null
-  url: string
-  imageUrl?: string | null
-  priority?: number
-  notes?: string | null
-}
-
-interface CreateWishlistItemResponse {
-  success: boolean
-  data?: WishlistItem
-  message?: string
-}
+import { useCreateWishlistItemMutation } from '@/lib/wishlists/queries'
+import type { WishlistItem } from '@/db/schema/wishlists'
 
 // Props
 interface Props {
@@ -107,6 +77,9 @@ const formData = reactive({
   priority: '3',
   notes: '',
 })
+
+// Pinia Colada mutation
+const createItemMutation = useCreateWishlistItemMutation()
 
 // Watch for external changes to modelValue
 watch(
@@ -142,42 +115,29 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true
 
-    const requestData: CreateWishlistItemRequest = {
+    const requestData = {
       name: formData.name.trim(),
-      description: formData.description.trim() || null,
-      price: formData.price ? parseFloat(formData.price) : null,
+      description: formData.description.trim() || undefined,
+      price: formData.price ? parseFloat(formData.price) : undefined,
       url: formData.url.trim(),
-      imageUrl: formData.imageUrl.trim() || null,
+      imageUrl: formData.imageUrl.trim() || undefined,
       priority: parseInt(formData.priority),
-      notes: formData.notes.trim() || null,
+      notes: formData.notes.trim() || undefined,
     }
 
-    const response = await fetch(`/api/wishlists/${props.wishlistId}/items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData),
+    const result = await createItemMutation.mutate({
+      wishlistId: props.wishlistId,
+      data: requestData,
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: CreateWishlistItemResponse = await response.json()
-
-    if (!data.success || !data.data) {
-      throw new Error(data.message || 'Fehler beim Hinzufügen des Artikels')
-    }
-
     // Emit the created item
-    emit('created', data.data)
+    emit('created', result)
 
     // Reset form and close dialog
     resetForm()
     isOpen.value = false
 
-    toast.success('Artikel erfolgreich hinzugefügt!')
+    // Toast success message is handled by parent component
   } catch (err) {
     console.error('Error creating wishlist item:', err)
     toast.error(
