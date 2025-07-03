@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.2
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.2.1...v0.2.2)
+
+### 🚀 Enhancements
+
+- **wishlists:** Integrate Pinia Colada for query management and clean up API calls #11 ([#11](https://github.com/florivdg/toolio/issues/11))
+
+### 🏡 Chore
+
+- **ai:** Update copilot instructions to clarify package manager and architecture patterns ([ac44fac](https://github.com/florivdg/toolio/commit/ac44fac))
+- Update dependencies and devDependencies to latest versions ([49be9c9](https://github.com/florivdg/toolio/commit/49be9c9))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.2.1
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.2.0...v0.2.1)
@@ -19,7 +36,7 @@
 
 ### ❤️ Contributors
 
-- Florian Van Der Galiën <hallo@flori.dev>
+- Florian van der Galiën <hallo@flori.dev>
 
 ## v0.2.0
 
