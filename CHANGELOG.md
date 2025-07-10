@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.2.2...v0.3.0)
+
+### 🚀 Enhancements
+
+- Add passkey login ([230644c](https://github.com/florivdg/toolio/commit/230644c))
+
+### 🏡 Chore
+
+- **ui:** Add table component from shadcn-vue ([cefd729](https://github.com/florivdg/toolio/commit/cefd729))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.2.2
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.2.1...v0.2.2)
