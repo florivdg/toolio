@@ -18,10 +18,12 @@ Toolio is a collection of tools that always have an API endpoint, a Vue.js compo
 - **Validation**: Zod schemas
 - **Runtime**: Bun for package management and runtime
 - **Deployment**: Docker
+- **Package Manager**: Bun (using `bun.lock` as the lock file)
 
 ## Architecture Patterns
 
-Every user facing text is written in German.
+- Every user facing text is written in German.
+- Follow DRY principles: Avoid code duplication by reusing components and utility functions.
 
 ### Authentication
 

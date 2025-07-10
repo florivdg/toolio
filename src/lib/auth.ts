@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { passkey } from 'better-auth/plugins/passkey'
 import { db } from '@/db/database'
 import * as schema from '@/db/schema/auth'
 
@@ -20,4 +21,21 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [
+    passkey({
+      rpID:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PASSKEY_RP_ID || 'localhost'
+          : 'localhost',
+      rpName: 'Toolio',
+      origin:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PASSKEY_ORIGIN || 'http://localhost:4321'
+          : 'http://localhost:4321',
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        userVerification: 'preferred',
+      },
+    }),
+  ],
 })

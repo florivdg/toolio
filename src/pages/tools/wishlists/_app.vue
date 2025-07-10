@@ -1,51 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, provide } from 'vue'
+import { computed } from 'vue'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { FileText, List } from 'lucide-vue-next'
+import { useWishlistsQuery } from '@/lib/wishlists/queries'
 
-// Types
-interface Wishlist {
-  id: string
-  name: string
-  description?: string
-  itemCount?: number
-}
+// Use Pinia Colada query for sidebar wishlists
+const { data, isLoading, error, refetch } = useWishlistsQuery(50, 0) // Get more for sidebar
 
-// State
-const wishlists = ref<Wishlist[]>([])
-const loading = ref(true)
-
-// Fetch wishlists for sidebar navigation
-const fetchWishlists = async () => {
-  try {
-    loading.value = true
-    const response = await fetch('/api/wishlists?limit=50') // Get more for sidebar
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        wishlists.value = data.data
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching wishlists for sidebar:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-// Refresh sidebar when wishlists change
-const refreshSidebar = () => {
-  fetchWishlists()
-}
-
-// Provide refresh function to child components
-provide('refreshSidebar', refreshSidebar)
-
-onMounted(() => {
-  fetchWishlists()
-})
+// Computed values for cleaner template usage
+const wishlists = computed(() => data.value?.data || [])
+const loading = computed(() => isLoading.value)
 </script>
 
 <template>

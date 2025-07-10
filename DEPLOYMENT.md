@@ -78,7 +78,7 @@ Toolio includes automatic iTunes price updates that run every 6 hours. These are
 After the container is running, run the database migrations:
 
 ```bash
-docker compose exec astro bun run scripts/migrate.ts
+docker compose exec astro bun run db:migrate
 ```
 
 This command will set up the database schema needed for the application to work properly.

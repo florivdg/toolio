@@ -1,16 +1,17 @@
 <template>
   <WishlistModal
-    mode="create"
+    mode="edit"
     :model-value="modelValue"
     :show-trigger="showTrigger"
+    :wishlist="wishlist"
     @update:model-value="emit('update:modelValue', $event)"
-    @success="emit('created', $event)"
+    @success="emit('updated', $event)"
   >
     <template #trigger>
       <slot name="trigger">
         <Button>
-          <Plus class="mr-2 h-4 w-4" />
-          Neue Wishlist
+          <Edit2 class="mr-2 h-4 w-4" />
+          Wishlist bearbeiten
         </Button>
       </slot>
     </template>
@@ -18,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
+import { Edit2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import WishlistModal from './WishlistModal.vue'
 
@@ -34,6 +35,7 @@ interface Wishlist {
 
 // Props
 interface Props {
+  wishlist: Wishlist
   modelValue?: boolean
   showTrigger?: boolean
 }
@@ -46,7 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 interface Emits {
   (e: 'update:modelValue', value: boolean): void
-  (e: 'created', wishlist: Wishlist): void
+  (e: 'updated', wishlist: Wishlist): void
 }
 
 const emit = defineEmits<Emits>()
