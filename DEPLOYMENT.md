@@ -36,11 +36,21 @@ BETTER_AUTH_SECRET=your-very-secure-secret-key
 # Notification API key (required for notification services)
 NOTI_API_KEY=your-notification-api-key
 
+# Passkey authentication configuration (for WebAuthn)
+PASSKEY_RP_ID=your-domain.com
+PASSKEY_ORIGIN=https://your-domain.com
+
 # Traefik configuration
 TRAEFIK_DNS=toolio
 ```
 
-Make sure to replace `your-very-secure-secret-key` with a strong random string. You can generate one using:
+Make sure to replace:
+
+- `your-very-secure-secret-key` with a strong random string
+- `your-domain.com` with your actual domain name
+- `https://your-domain.com` with your actual domain URL
+
+You can generate a secure authentication secret using:
 
 ```bash
 openssl rand -base64 32
@@ -98,6 +108,15 @@ docker compose exec astro bun run scripts/add-user.js admin@example.com secure_p
 ```
 
 The third parameter (real name) is optional but recommended.
+
+### 8. Passkey Authentication Setup
+
+Toolio supports WebAuthn passkey authentication alongside traditional email/password authentication. For passkey authentication to work properly in production:
+
+1. Ensure your `PASSKEY_RP_ID` matches your domain (e.g., `toolio.flori.cloud`)
+2. Ensure your `PASSKEY_ORIGIN` matches your full URL (e.g., `https://toolio.flori.cloud`)
+3. Your site must be served over HTTPS (required for WebAuthn)
+4. Users can register passkeys from their account settings after signing in with email/password
 
 ## Updating the Application
 
