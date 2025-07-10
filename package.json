@@ -33,14 +33,14 @@
     "vue": "^3.5.17",
     "vue-router": "^4.5.1",
     "vue-sonner": "^2.0.1",
-    "zod": "^3.25.71"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
     "@types/bun": "^1.2.18",
     "drizzle-kit": "^0.31.4",
-    "oxlint": "^1.5.0",
+    "oxlint": "^1.6.0",
     "prettier-plugin-astro": "^0.14.1",
-    "prettier-plugin-tailwindcss": "^0.6.13"
+    "prettier-plugin-tailwindcss": "^0.6.14"
   }
 }
