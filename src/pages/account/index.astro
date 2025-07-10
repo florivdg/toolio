@@ -2,6 +2,7 @@
 import App from '@/layouts/App.astro'
 import PageHeader from '@/components/PageHeader.astro'
 import SignOutButton from '@/components/auth/sign-out-button.vue'
+import PasskeyManager from '@/components/auth/passkey-manager.vue'
 import {
   Card,
   CardContent,
@@ -17,8 +18,8 @@ const userSession = Astro.locals.session
 <App>
   <PageHeader title="Account" />
 
-  <section class="my-8">
-    <!-- Display session info, adjust fields as needed -->
+  <section class="my-8 space-y-8">
+    <!-- Session Information -->
     <Card class="w-full max-w-4xl">
       <CardHeader>
         <CardTitle>Information zur Session</CardTitle>
@@ -27,13 +28,20 @@ const userSession = Astro.locals.session
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Nutzer-ID: {userSession!.userId}</p>
-        <p>Erstellt am: {userSession!.createdAt}</p>
-        <p>Läuft ab am: {userSession!.expiresAt}</p>
+        <div class="space-y-2">
+          <p><strong>Nutzer-ID:</strong> {userSession!.userId}</p>
+          <p><strong>Erstellt am:</strong> {new Date(userSession!.createdAt).toLocaleString('de-DE')}</p>
+          <p><strong>Läuft ab am:</strong> {new Date(userSession!.expiresAt).toLocaleString('de-DE')}</p>
+        </div>
       </CardContent>
       <CardFooter>
         <SignOutButton client:load />
       </CardFooter>
     </Card>
+
+    <!-- Passkey Management -->
+    <div class="w-full max-w-4xl">
+      <PasskeyManager client:load />
+    </div>
   </section>
 </App>
