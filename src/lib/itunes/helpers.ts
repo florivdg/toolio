@@ -134,6 +134,6 @@ export function handleImageError(event: Event): void {
  * @param countryCode The country code from iTunes API response (unused)
  * @returns The country code for iTunes lookup API (always "de")
  */
-export function mapCountryCode(countryCode: string | undefined): string {
+export function mapCountryCode(_countryCode: string | undefined): string {
   return 'de'
 }
