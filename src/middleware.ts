@@ -10,9 +10,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const publicPaths = ['/sign-in', '/api/auth', '/api/itunes/update-prices']
 
   // Check if the current path is a public path
-  const isPublicPath = publicPaths.some(
-    (path) => currentPath === path || currentPath.startsWith(path + '/'),
-  )
+  const isPublicPath = publicPaths.some((path) => {
+    if (path.endsWith('/*')) {
+      // Handle wildcard paths
+      const basePath = path.slice(0, -2) // Remove the '/*'
+      return currentPath === basePath || currentPath.startsWith(basePath + '/')
+    }
+    // Handle exact paths
+    return currentPath === path || currentPath.startsWith(path + '/')
+  })
 
   const isAuthed = await auth.api.getSession({
     headers: context.request.headers,
