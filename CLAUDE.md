@@ -79,6 +79,7 @@ Database schemas:
    - Use drizzle-zod for database schema validation
    - Always infer types from Zod schemas
    - Return consistent error responses
+   - Do not handle auth in individual api endpoints, its done in middleware
 
 4. **Authentication**:
 
