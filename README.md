@@ -27,11 +27,21 @@ The site will be available at `http://localhost:4321` by default.
 
 ### Authentication
 
-Toolio includes basic authentication powered by **better-auth**. You can create users with:
+Toolio includes basic authentication powered by **better-auth** with support for:
+
+- Email/password authentication
+- Passkey authentication (WebAuthn)
+
+You can create users with:
 
 ```bash
 bun run scripts/add-user.ts <email> <password> [name]
 ```
+
+For passkey authentication in production, make sure to set the correct values for:
+
+- `PASSKEY_RP_ID`: Your domain (e.g., `toolio.example.com`)
+- `PASSKEY_ORIGIN`: Your full origin URL (e.g., `https://toolio.example.com`)
 
 ## Deployment
 

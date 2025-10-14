@@ -1,3 +1,4 @@
+// oxlint-disable triple-slash-reference
 /// <reference path="../.astro/types.d.ts" />
 
 declare namespace App {

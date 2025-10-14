@@ -13,6 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Code Quality
 
 - `bun run lint` - Run oxlint for code linting
+- Always run `bunx prettier` for changed files after completing work
+- Make sure to run a type check when changes were applied
 
 ### Database
 
