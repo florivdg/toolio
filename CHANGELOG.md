@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.3.1
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.3.0...v0.3.1)
+
+### 🩹 Fixes
+
+- **deps:** Update astro monorepo ([84f1826](https://github.com/florivdg/toolio/commit/84f1826))
+- **deps:** Update dependency lucide-vue-next to ^0.544.0 ([138d272](https://github.com/florivdg/toolio/commit/138d272))
+- **deps:** Update dependency lucide-vue-next to ^0.545.0 ([bbc8ecd](https://github.com/florivdg/toolio/commit/bbc8ecd))
+- **deps:** Update astro monorepo ([398d92e](https://github.com/florivdg/toolio/commit/398d92e))
+- **deps:** Update astro monorepo ([6de5272](https://github.com/florivdg/toolio/commit/6de5272))
+- **deps:** Update astro monorepo ([c96b656](https://github.com/florivdg/toolio/commit/c96b656))
+
+### 📖 Documentation
+
+- **auth:** Add passkey authentication configuration and update documentation ([5488535](https://github.com/florivdg/toolio/commit/5488535))
+
+### 🏡 Chore
+
+- Update dependencies and improve type definitions ([4952493](https://github.com/florivdg/toolio/commit/4952493))
+- Update dependencies to latest versions ([87107a1](https://github.com/florivdg/toolio/commit/87107a1))
+- **claude-md:** Update code quality guidelines ([902a7e5](https://github.com/florivdg/toolio/commit/902a7e5))
+- Update dependencies to latest versions ([e99a915](https://github.com/florivdg/toolio/commit/e99a915))
+- Update renovate configuration to include assignees ([0b7931d](https://github.com/florivdg/toolio/commit/0b7931d))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.3.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.2.2...v0.3.0)
