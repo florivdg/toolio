@@ -4,7 +4,7 @@ import { Database } from 'bun:sqlite'
 const sqlite = new Database(process.env.DB_FILE_NAME!)
 
 // Enable foreign key constraints
-sqlite.exec('PRAGMA foreign_keys = ON;')
+sqlite.prepare('PRAGMA foreign_keys = ON;').run()
 
 const db = drizzle({ client: sqlite })
 
