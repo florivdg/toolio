@@ -30,6 +30,9 @@ Create a `.env` file in the `/srv/docker/toolio` directory with the necessary en
 # Application environment variables
 DB_FILE_NAME=/data/sqlite.db
 
+# Environment (should be "production" for production deployments)
+NODE_ENV=production
+
 # Authentication secret (generate a strong random string)
 BETTER_AUTH_SECRET=your-very-secure-secret-key
 
@@ -39,6 +42,9 @@ NOTI_API_KEY=your-notification-api-key
 # Passkey authentication configuration (for WebAuthn)
 PASSKEY_RP_ID=your-domain.com
 PASSKEY_ORIGIN=https://your-domain.com
+
+# Auto-migrations (optional - set to "true" to disable automatic migrations)
+# DISABLE_AUTO_MIGRATIONS=false
 
 # Traefik configuration
 TRAEFIK_DNS=toolio
@@ -67,6 +73,8 @@ docker compose up -d
 
 This will pull the latest Toolio image and start the container with the configuration defined in the Docker Compose file. The container will automatically start both the web application and a cron daemon for scheduled tasks.
 
+**Database migrations run automatically** when `NODE_ENV=production` is set. The migrations will execute on startup before the application starts. If you need to disable this behavior, set `DISABLE_AUTO_MIGRATIONS=true` in your environment variables.
+
 ### 5. Configure Automatic Price Updates (Optional)
 
 Toolio includes automatic iTunes price updates that run every 6 hours. These are enabled by default when using Docker. To customize the cron schedule or server URL:
@@ -83,9 +91,9 @@ Toolio includes automatic iTunes price updates that run every 6 hours. These are
    docker compose exec astro tail -f /var/log/cron.log
    ```
 
-### 6. Run Database Migrations
+### 6. Database Migrations (Optional)
 
-After the container is running, run the database migrations:
+Database migrations run automatically on container startup when `NODE_ENV=production` is set. However, if you've disabled auto-migrations with `DISABLE_AUTO_MIGRATIONS=true`, you can run them manually:
 
 ```bash
 docker compose exec astro bun run db:migrate
@@ -131,7 +139,7 @@ docker compose pull
 docker compose up -d
 ```
 
-After updating, you might need to run migrations again if there are database schema changes:
+Database migrations will run automatically on startup if `NODE_ENV=production` is set (which is the recommended configuration). If you have disabled auto-migrations with `DISABLE_AUTO_MIGRATIONS=true`, you'll need to run them manually after updating:
 
 ```bash
 docker compose exec astro bun run scripts/migrate.ts

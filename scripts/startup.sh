@@ -25,6 +25,24 @@ echo "$(date): Cron daemon (cronie) started"
 # Wait a moment for cron to initialize
 sleep 2
 
+# Run database migrations in production (unless explicitly disabled)
+if [ "$NODE_ENV" = "production" ] && [ "$DISABLE_AUTO_MIGRATIONS" != "true" ]; then
+  echo "$(date): Running database migrations..."
+  bun run scripts/migrate.ts
+  if [ $? -eq 0 ]; then
+    echo "$(date): Database migrations completed successfully"
+  else
+    echo "$(date): ERROR: Database migrations failed"
+    exit 1
+  fi
+else
+  if [ "$DISABLE_AUTO_MIGRATIONS" = "true" ]; then
+    echo "$(date): Auto-migrations disabled by DISABLE_AUTO_MIGRATIONS flag"
+  else
+    echo "$(date): Skipping auto-migrations (NODE_ENV=$NODE_ENV)"
+  fi
+fi
+
 # Start the main application
 echo "$(date): Starting Toolio application..."
 exec bun run ./dist/server/entry.mjs

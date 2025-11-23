@@ -6,6 +6,7 @@ services:
       - .env
     environment:
       - DB_FILE_NAME=/data/sqlite.db
+      - NODE_ENV=production
     networks:
       - traefik_system_traefik
     volumes:
