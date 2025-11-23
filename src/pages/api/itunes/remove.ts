@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm'
 
 // Define a schema for the remove API
 const itunesRemoveSchema = z.object({
-  id: z.string().uuid(), // The database ID of the media item
+  id: z.uuid(), // The database ID of the media item
 })
 
 export const DELETE: APIRoute = async ({ request }) => {
@@ -60,7 +60,7 @@ export const DELETE: APIRoute = async ({ request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

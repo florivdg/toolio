@@ -214,7 +214,7 @@ export const GET: APIRoute = async ({ url }) => {
         JSON.stringify({
           success: false,
           message: 'Invalid query parameters',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

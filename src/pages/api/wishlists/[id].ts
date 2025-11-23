@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm'
 
 // Schema for path parameters
 const pathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 })
 
 // GET - Get a specific wishlist with its items
@@ -69,7 +69,7 @@ export const GET: APIRoute = async ({ params }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
@@ -162,7 +162,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
@@ -240,7 +240,7 @@ export const DELETE: APIRoute = async ({ params }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

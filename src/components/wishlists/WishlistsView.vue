@@ -203,10 +203,21 @@ const hasMore = computed(() => {
   return currentTotal < initialData.value.pagination.total
 })
 
+const normalizeWishlist = (wishlist: WishlistWithItems | undefined) => {
+  if (!wishlist?.id) return undefined
+  return {
+    ...wishlist,
+    itemCount: wishlist.itemCount ?? 0,
+    latestItems: wishlist.latestItems ?? [],
+  }
+}
+
 // Initialize with first page data
 onMounted(() => {
   if (initialData.value?.data) {
-    allWishlists.value = [...initialData.value.data]
+    allWishlists.value = initialData.value.data
+      .map(normalizeWishlist)
+      .filter(Boolean) as WishlistWithItems[]
   }
 })
 
@@ -214,15 +225,19 @@ onMounted(() => {
 import { watch } from 'vue'
 watch(initialData, (newData) => {
   if (newData?.data) {
-    allWishlists.value = [...newData.data]
+    allWishlists.value = newData.data
+      .map(normalizeWishlist)
+      .filter(Boolean) as WishlistWithItems[]
     currentOffset.value = 0
   }
 }, { deep: true })
 
 // Handle wishlist created event from modal
 const handleWishlistCreated = (wishlist: WishlistWithItems) => {
+  const normalized = normalizeWishlist(wishlist)
+  if (!normalized) return
   // Add new wishlist to the beginning of the list
-  allWishlists.value.unshift(wishlist)
+  allWishlists.value.unshift(normalized)
 }
 
 // Load more wishlists - use direct fetch for additional pages

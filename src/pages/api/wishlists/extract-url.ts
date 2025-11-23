@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { extractProductDetailsFromUrl } from '@/lib/wishlists/url-extractor'
 
 const ExtractUrlSchema = z.object({
-  url: z.string().url('URL muss gültig sein'),
+  url: z.url('URL muss gültig sein'),
 })
 
 export const POST: APIRoute = async ({ request }) => {
@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
         JSON.stringify({
           success: false,
           error: 'Ungültige Eingabedaten',
-          details: error.errors,
+          details: error.issues,
         }),
         {
           status: 400,

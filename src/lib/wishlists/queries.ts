@@ -151,7 +151,16 @@ export function useCreateWishlistMutation() {
         if (!data.success) {
           throw new Error(data.message || 'API returned success: false')
         }
-        return data.data
+        const wishlist = data.data
+        if (!wishlist?.id) {
+          throw new Error('API-Antwort enthält keine Wishlist-ID')
+        }
+        const withExtras: WishlistWithItems = {
+          ...(wishlist as WishlistWithItems),
+          itemCount: (wishlist as WishlistWithItems).itemCount ?? 0,
+          latestItems: (wishlist as WishlistWithItems).latestItems ?? [],
+        }
+        return withExtras
   }),
   onSuccess: () => {
     // Invalidate all wishlist list queries
