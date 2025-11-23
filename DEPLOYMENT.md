@@ -44,7 +44,7 @@ PASSKEY_RP_ID=your-domain.com
 PASSKEY_ORIGIN=https://your-domain.com
 
 # Auto-migrations (optional - set to "true" to disable automatic migrations)
-# DISABLE_AUTO_MIGRATIONS=false
+# DISABLE_AUTO_MIGRATIONS=true
 
 # Traefik configuration
 TRAEFIK_DNS=toolio

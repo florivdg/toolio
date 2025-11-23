@@ -28,8 +28,7 @@ sleep 2
 # Run database migrations in production (unless explicitly disabled)
 if [ "$NODE_ENV" = "production" ] && [ "$DISABLE_AUTO_MIGRATIONS" != "true" ]; then
   echo "$(date): Running database migrations..."
-  bun run scripts/migrate.ts
-  if [ $? -eq 0 ]; then
+  if bun run scripts/migrate.ts; then
     echo "$(date): Database migrations completed successfully"
   else
     echo "$(date): ERROR: Database migrations failed"
