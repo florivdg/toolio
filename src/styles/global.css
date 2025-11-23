@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@plugin "@tailwindcss/typography";
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -181,4 +181,8 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+[data-sonner-toast][data-styled='true'] [data-description] {
+  color: var(--popover-foreground);
 }

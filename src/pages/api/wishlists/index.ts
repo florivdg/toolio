@@ -88,7 +88,7 @@ export const GET: APIRoute = async ({ url }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
@@ -133,11 +133,17 @@ export const POST: APIRoute = async ({ request }) => {
       .returning()
       .get()
 
+    const responseData = {
+      ...newWishlist,
+      itemCount: 0,
+      latestItems: [],
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Wunschliste erfolgreich erstellt',
-        data: newWishlist,
+        data: responseData,
       }),
       {
         status: 201,
@@ -155,7 +161,7 @@ export const POST: APIRoute = async ({ request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

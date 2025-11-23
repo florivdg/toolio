@@ -18,7 +18,7 @@ const queryParamsSchema = z.object({
 
 // Schema for path parameters
 const pathParamsSchema = z.object({
-  wishlistId: z.string().uuid(),
+  wishlistId: z.uuid(),
 }) // GET - List all items in a wishlist
 export const GET: APIRoute = async ({ params, url }) => {
   try {
@@ -108,7 +108,7 @@ export const GET: APIRoute = async ({ params, url }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
@@ -201,7 +201,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

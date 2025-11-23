@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.4.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.3.1...v0.4.0)
+
+### 🩹 Fixes
+
+- **deps:** Update dependency lucide-vue-next to ^0.546.0 ([87d33d7](https://github.com/florivdg/toolio/commit/87d33d7))
+- **deps:** Update dependency astro to v5.14.6 ([92c73aa](https://github.com/florivdg/toolio/commit/92c73aa))
+- **deps:** Update dependency @vueuse/core to v14 ([6e000e7](https://github.com/florivdg/toolio/commit/6e000e7))
+- **deps:** Update dependency astro to v5.14.8 ([0d2bb0e](https://github.com/florivdg/toolio/commit/0d2bb0e))
+- **auth:** Update import paths for passkey client ([87099aa](https://github.com/florivdg/toolio/commit/87099aa))
+- **queries:** Refactor fetch calls to use async/await for improved readability ([f82b609](https://github.com/florivdg/toolio/commit/f82b609))
+
+### 💅 Refactors
+
+- **zod:** Migrate to zod 4 ([13df38c](https://github.com/florivdg/toolio/commit/13df38c))
+
+### 📖 Documentation
+
+- Rename CLAUDE.md to AGENTS.md ([2e34e38](https://github.com/florivdg/toolio/commit/2e34e38))
+
+### 🏡 Chore
+
+- **tsconfig:** Remove baseUrl ([13fdf58](https://github.com/florivdg/toolio/commit/13fdf58))
+
+### 🎨 Styles
+
+- **global.css:** Update toast description color ([887d4cc](https://github.com/florivdg/toolio/commit/887d4cc))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.3.1
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.3.0...v0.3.1)

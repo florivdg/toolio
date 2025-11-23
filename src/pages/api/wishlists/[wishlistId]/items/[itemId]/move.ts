@@ -6,13 +6,13 @@ import { eq, and } from 'drizzle-orm'
 
 // Schema for path parameters
 const pathParamsSchema = z.object({
-  wishlistId: z.string().uuid(),
-  itemId: z.string().uuid(),
+  wishlistId: z.uuid(),
+  itemId: z.uuid(),
 })
 
 // Schema for request body
 const moveItemSchema = z.object({
-  targetWishlistId: z.string().uuid(),
+  targetWishlistId: z.uuid(),
 })
 
 // PATCH - Move item to another wishlist
@@ -74,7 +74,10 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       .select()
       .from(wishlistItems)
       .where(
-        and(eq(wishlistItems.id, itemId), eq(wishlistItems.wishlistId, wishlistId))
+        and(
+          eq(wishlistItems.id, itemId),
+          eq(wishlistItems.wishlistId, wishlistId),
+        ),
       )
       .get()
 
@@ -157,7 +160,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

@@ -10,8 +10,8 @@ import { eq, and } from 'drizzle-orm'
 
 // Schema for path parameters
 const pathParamsSchema = z.object({
-  wishlistId: z.string().uuid(),
-  itemId: z.string().uuid(),
+  wishlistId: z.uuid(),
+  itemId: z.uuid(),
 })
 
 // Schema for partial updates - all fields optional except id, wishlistId, createdAt
@@ -97,7 +97,7 @@ export const GET: APIRoute = async ({ params }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
@@ -252,7 +252,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
@@ -357,7 +357,7 @@ export const DELETE: APIRoute = async ({ params }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,

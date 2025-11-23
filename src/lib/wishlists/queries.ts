@@ -95,21 +95,17 @@ export function useWishlistsQuery(limit = 20, offset = 0) {
 export function useWishlistQuery(id: MaybeRefOrGetter<string>) {
   return useQuery({
     key: () => wishlistKeys.detail(toValue(id)),
-    query: () => {
+    query: async () => {
       const idValue = toValue(id)
-      return fetch(`/api/wishlists/${idValue}`)
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-          }
-          return res.json()
-        })
-        .then((data: ApiResponse<Wishlist>) => {
-          if (!data.success) {
-            throw new Error('API returned success: false')  
-          }
-          return data.data
-        })
+      const res = await fetch(`/api/wishlists/${idValue}`)
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+      }
+      const data = (await res.json()) as ApiResponse<Wishlist>
+      if (!data.success) {
+        throw new Error('API returned success: false')
+      }
+      return data.data
     },
     staleTime: 60000,
   })
@@ -118,21 +114,17 @@ export function useWishlistQuery(id: MaybeRefOrGetter<string>) {
 export function useWishlistItemsQuery(wishlistId: MaybeRefOrGetter<string>, limit = 20, offset = 0) {
   return useQuery({
     key: () => wishlistKeys.itemsWithFilters(toValue(wishlistId), { limit, offset }),
-    query: () => {
+    query: async () => {
       const wishlistIdValue = toValue(wishlistId)
-      return fetch(`/api/wishlists/${wishlistIdValue}/items?limit=${limit}&offset=${offset}`)
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-          }
-          return res.json()
-        })
-        .then((data: WishlistItemsResponse) => {
-          if (!data.success) {
-            throw new Error('API returned success: false')
-          }
-          return data
-        })
+      const res = await fetch(`/api/wishlists/${wishlistIdValue}/items?limit=${limit}&offset=${offset}`)
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+      }
+      const data = (await res.json()) as WishlistItemsResponse
+      if (!data.success) {
+        throw new Error('API returned success: false')
+      }
+      return data
     },
     staleTime: 60000,
   })
@@ -159,12 +151,21 @@ export function useCreateWishlistMutation() {
         if (!data.success) {
           throw new Error(data.message || 'API returned success: false')
         }
-        return data.data
-      }),
-    onSuccess: () => {
-      // Invalidate all wishlist list queries
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
-    },
+        const wishlist = data.data
+        if (!wishlist?.id) {
+          throw new Error('API-Antwort enthält keine Wishlist-ID')
+        }
+        const withExtras: WishlistWithItems = {
+          ...(wishlist as WishlistWithItems),
+          itemCount: (wishlist as WishlistWithItems).itemCount ?? 0,
+          latestItems: (wishlist as WishlistWithItems).latestItems ?? [],
+        }
+        return withExtras
+  }),
+  onSuccess: () => {
+    // Invalidate all wishlist list queries
+    void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+  },
   })
 }
 
@@ -190,10 +191,10 @@ export function useUpdateWishlistMutation() {
         }
         return data.data
       }),
-    onSuccess: (data, { id }) => {
+    onSuccess: (_, { id }) => {
       // Invalidate specific wishlist and the list
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(id) })
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+      void queryCache.invalidateQueries({ key: wishlistKeys.detail(id) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
     },
   })
 }
@@ -220,8 +221,8 @@ export function useDeleteWishlistMutation() {
       }),
     onSuccess: (_, id) => {
       // Invalidate wishlist list queries and the specific detail query
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(id) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+      void queryCache.invalidateQueries({ key: wishlistKeys.detail(id) })
     },
   })
 }
@@ -250,9 +251,9 @@ export function useCreateWishlistItemMutation() {
       }),
     onSuccess: (_, { wishlistId }) => {
       // Invalidate items list and the parent wishlist
-      queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+      void queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
     },
   })
 }
@@ -280,9 +281,9 @@ export function useUpdateWishlistItemMutation() {
         return data.data
       }),
     onSuccess: (_, { wishlistId }) => {
-      queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+      void queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
     },
   })
 }
@@ -308,9 +309,9 @@ export function useDeleteWishlistItemMutation() {
         return data.data
       }),
     onSuccess: (_, { wishlistId }) => {
-      queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+      void queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
     },
   })
 }
@@ -344,9 +345,9 @@ export function useUpdateWishlistItemStatusMutation() {
         return data.data
       }),
     onSuccess: (_, { wishlistId }) => {
-      queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+      void queryCache.invalidateQueries({ key: wishlistKeys.items(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.detail(wishlistId) })
+      void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
     },
   })
 }
@@ -380,14 +381,14 @@ export function useMoveWishlistItemMutation() {
           throw new Error(data.message || 'API returned success: false')
         }
         return data.data
-      }),
-    onSuccess: (_, { fromWishlistId, toWishlistId }) => {
-      // Invalidate both source and destination wishlists
-      queryCache.invalidateQueries({ key: wishlistKeys.items(fromWishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.items(toWishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(fromWishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.detail(toWishlistId) })
-      queryCache.invalidateQueries({ key: wishlistKeys.lists() })
-    },
-  })
+  }),
+  onSuccess: (_, { fromWishlistId, toWishlistId }) => {
+    // Invalidate both source and destination wishlists
+    void queryCache.invalidateQueries({ key: wishlistKeys.items(fromWishlistId) })
+    void queryCache.invalidateQueries({ key: wishlistKeys.items(toWishlistId) })
+    void queryCache.invalidateQueries({ key: wishlistKeys.detail(fromWishlistId) })
+    void queryCache.invalidateQueries({ key: wishlistKeys.detail(toWishlistId) })
+    void queryCache.invalidateQueries({ key: wishlistKeys.lists() })
+  },
+})
 }

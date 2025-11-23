@@ -11,8 +11,8 @@ const activeStatusSchema = z.object({
 
 // Schema for path parameters
 const pathParamsSchema = z.object({
-  wishlistId: z.string().uuid(),
-  itemId: z.string().uuid(),
+  wishlistId: z.uuid(),
+  itemId: z.uuid(),
 })
 
 // PATCH - Update active status of a wishlist item
@@ -116,7 +116,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
         JSON.stringify({
           success: false,
           message: 'Ungültige Anfrageparameter',
-          errors: error.errors,
+          errors: error.issues,
         }),
         {
           status: 400,
