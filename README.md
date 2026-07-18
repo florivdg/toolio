@@ -45,4 +45,6 @@ For passkey authentication in production, make sure to set the correct values fo
 
 ## Deployment
 
-A `Dockerfile` and deployment guide are provided for container-based deployments. See [DEPLOYMENT.md](DEPLOYMENT.md) for an example Docker Compose setup and additional commands such as running migrations inside the container.
+A `Dockerfile` and deployment guide are provided for container-based deployments. See [DEPLOYMENT.md](DEPLOYMENT.md) for an example Docker Compose setup and additional commands.
+
+**Auto-migrations**: When deployed with `NODE_ENV=production`, database migrations run automatically on startup. This ensures the database schema is always up-to-date. You can disable this behavior by setting `DISABLE_AUTO_MIGRATIONS=true` in your environment variables.

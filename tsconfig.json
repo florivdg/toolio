@@ -4,6 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "jsx": "preserve",
+    "types": ["bun"],
     "paths": {
       "@/*": ["./src/*"]
     }

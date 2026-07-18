@@ -17,16 +17,17 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    ssr: {
+      noExternal: ['@pinia/colada', 'pinia'],
+    },
   },
 
-  experimental: {
-    fonts: [
-      {
-        provider: fontProviders.google(),
-        name: 'Geist Mono',
-        cssVariable: '--font-geist-mono',
-        weights: ['400', '700'],
-      },
-    ],
-  },
+  fonts: [
+    {
+      provider: fontProviders.google(),
+      name: 'Geist Mono',
+      cssVariable: '--font-geist-mono',
+      weights: ['400', '700'],
+    },
+  ],
 })

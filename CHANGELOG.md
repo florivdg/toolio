@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.5.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.4.0...v0.5.0)
+
+### 🩹 Fixes
+
+- **itunes:** Work around broken media=movie filter in iTunes Search API ([31ab4f4](https://github.com/florivdg/toolio/commit/31ab4f4))
+
+### 🎨 Styles
+
+- **ci:** Format Docker publish workflow ([284470c](https://github.com/florivdg/toolio/commit/284470c))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.4.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.3.1...v0.4.0)

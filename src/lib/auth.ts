@@ -5,6 +5,7 @@ import { db } from '@/db/database'
 import * as schema from '@/db/schema/auth'
 
 export const auth = betterAuth({
+  baseURL: process.env.PASSKEY_ORIGIN || 'http://localhost:4321',
   database: drizzleAdapter(db, {
     provider: 'sqlite',
     schema,

@@ -86,7 +86,19 @@ export interface SearchResult {
 }
 
 /**
+ * Server-side kind filter for media types where the iTunes API `media`
+ * parameter is broken (e.g. `media=movie` returns 0 results).
+ */
+const FALLBACK_KIND_FILTER: Record<string, string[]> = {
+  movie: ['feature-movie'],
+}
+
+/**
  * Search the iTunes store
+ *
+ * The iTunes API `media=movie` filter is broken and returns 0 results.
+ * For movies we fetch unfiltered results and filter server-side by `kind`.
+ * For TV shows and music the API filters still work and are passed through.
  *
  * @param params The search parameters
  * @returns The search response with results
@@ -100,14 +112,21 @@ export async function search({
 }: SearchParams): Promise<SearchResponse> {
   const url = new URL('https://itunes.apple.com/search')
 
-  // Add required term parameter
   url.searchParams.append('term', term)
-
-  // Add optional parameters if provided
-  if (media) url.searchParams.append('media', media)
-  if (entity) url.searchParams.append('entity', entity)
   url.searchParams.append('country', country)
-  url.searchParams.append('limit', limit.toString())
+
+  const kindFilter = media ? FALLBACK_KIND_FILTER[media] : undefined
+
+  if (!kindFilter) {
+    // Only bypass filters with a configured server-side fallback. All other
+    // media and entity values must retain their original pass-through behavior.
+    if (media) url.searchParams.append('media', media)
+    if (entity) url.searchParams.append('entity', entity)
+  }
+
+  // Broken filters require overfetching before applying their local filter.
+  const fetchLimit = kindFilter ? Math.min(limit * 5, 200) : limit
+  url.searchParams.append('limit', fetchLimit.toString())
 
   const response = await fetch(url.toString())
 
@@ -117,7 +136,17 @@ export async function search({
     )
   }
 
-  return (await response.json()) as SearchResponse
+  const data = (await response.json()) as SearchResponse
+
+  if (!kindFilter) {
+    return data
+  }
+
+  const filtered = data.results
+    .filter((r) => r.kind && kindFilter.includes(r.kind))
+    .slice(0, limit)
+
+  return { resultCount: filtered.length, results: filtered }
 }
 
 /**
