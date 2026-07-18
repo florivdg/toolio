@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ url }) => {
     const searchResponse: SearchResponse = await search({
       term: validated.term,
       media: validated.media,
-      entity: entity,
+      entity,
       country: validated.country,
       limit: validated.limit,
     })
