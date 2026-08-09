@@ -1,92 +1,38 @@
 import type { APIRoute } from 'astro'
 import { z } from 'zod'
 import { db } from '@/db/database'
-import { wishlists, wishlistItems } from '@/db/schema/wishlists'
-import { eq, and } from 'drizzle-orm'
+import { wishlistItems } from '@/db/schema/wishlists'
+import { ok } from '@/lib/api/responses'
+import {
+  handleApiError,
+  itemPathParamsSchema,
+  itemScope,
+  requireWishlist,
+  requireWishlistItem,
+} from '@/lib/api/wishlist-guards'
 
 // Schema for updating purchase status
 const purchaseStatusSchema = z.object({
   isPurchased: z.boolean(),
 })
 
-// Schema for path parameters
-const pathParamsSchema = z.object({
-  wishlistId: z.uuid(),
-  itemId: z.uuid(),
-})
-
 // PATCH - Update purchase status of a wishlist item
 export const PATCH: APIRoute = async ({ params, request }) => {
   try {
-    // Validate path parameters
-    const { wishlistId, itemId } = pathParamsSchema.parse(params)
+    const { wishlistId, itemId } = itemPathParamsSchema.parse(params)
 
-    // Check if wishlist exists
-    const wishlist = db
-      .select()
-      .from(wishlists)
-      .where(eq(wishlists.id, wishlistId))
-      .get()
+    const wishlist = requireWishlist(wishlistId)
+    if (wishlist.response) return wishlist.response
 
-    if (!wishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
+    const { isPurchased } = purchaseStatusSchema.parse(await request.json())
 
-    // Parse and validate the request body
-    const body = await request.json()
-    const { isPurchased } = purchaseStatusSchema.parse(body)
+    const existing = requireWishlistItem(wishlistId, itemId)
+    if (existing.response) return existing.response
 
-    // Check if wishlist item exists
-    const existingItem = db
-      .select()
-      .from(wishlistItems)
-      .where(
-        and(
-          eq(wishlistItems.id, itemId),
-          eq(wishlistItems.wishlistId, wishlistId),
-        ),
-      )
-      .get()
-
-    if (!existingItem) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschlistenelement nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Update purchase status in database
     const updatedItem = db
       .update(wishlistItems)
-      .set({
-        isPurchased,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(wishlistItems.id, itemId),
-          eq(wishlistItems.wishlistId, wishlistId),
-        ),
-      )
+      .set({ isPurchased, updatedAt: new Date() })
+      .where(itemScope(wishlistId, itemId))
       .returning()
       .get()
 
@@ -94,52 +40,11 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       ? 'Als gekauft markiert'
       : 'Als nicht gekauft markiert'
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Wunschlistenelement erfolgreich ${statusMessage}`,
-        data: updatedItem,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return ok(updatedItem, `Wunschlistenelement erfolgreich ${statusMessage}`)
   } catch (error) {
-    console.error('Error updating purchase status:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Aktualisieren des Kaufstatus',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error updating purchase status',
+      message: 'Fehler beim Aktualisieren des Kaufstatus',
+    })
   }
 }

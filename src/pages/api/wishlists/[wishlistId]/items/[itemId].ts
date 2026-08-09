@@ -1,18 +1,14 @@
 import type { APIRoute } from 'astro'
-import { z } from 'zod'
 import { db } from '@/db/database'
+import { wishlistItems, wishlistItemSchema } from '@/db/schema/wishlists'
+import { badRequest, json, ok } from '@/lib/api/responses'
 import {
-  wishlists,
-  wishlistItems,
-  wishlistItemSchema,
-} from '@/db/schema/wishlists'
-import { eq, and } from 'drizzle-orm'
-
-// Schema for path parameters
-const pathParamsSchema = z.object({
-  wishlistId: z.uuid(),
-  itemId: z.uuid(),
-})
+  handleApiError,
+  itemPathParamsSchema,
+  itemScope,
+  requireWishlist,
+  requireWishlistItem,
+} from '@/lib/api/wishlist-guards'
 
 // Schema for partial updates - all fields optional except id, wishlistId, createdAt
 const wishlistItemUpdateSchema = wishlistItemSchema.partial().omit({
@@ -24,363 +20,108 @@ const wishlistItemUpdateSchema = wishlistItemSchema.partial().omit({
 // GET - Get a specific wishlist item
 export const GET: APIRoute = async ({ params }) => {
   try {
-    // Validate path parameters
-    const { wishlistId, itemId } = pathParamsSchema.parse(params)
+    const { wishlistId, itemId } = itemPathParamsSchema.parse(params)
 
-    // Check if wishlist exists
-    const wishlist = db
-      .select()
-      .from(wishlists)
-      .where(eq(wishlists.id, wishlistId))
-      .get()
+    const wishlist = requireWishlist(wishlistId)
+    if (wishlist.response) return wishlist.response
 
-    if (!wishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
+    const item = requireWishlistItem(wishlistId, itemId)
+    if (item.response) return item.response
 
-    // Fetch wishlist item from database
-    const item = db
-      .select()
-      .from(wishlistItems)
-      .where(
-        and(
-          eq(wishlistItems.id, itemId),
-          eq(wishlistItems.wishlistId, wishlistId),
-        ),
-      )
-      .get()
-
-    if (!item) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschlistenelement nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: item,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return ok(item.value)
   } catch (error) {
-    console.error('Error fetching wishlist item:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Laden des Wunschlistenelements',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error fetching wishlist item',
+      message: 'Fehler beim Laden des Wunschlistenelements',
+    })
   }
 }
 
 // PUT - Update a specific wishlist item
 export const PUT: APIRoute = async ({ params, request }) => {
   try {
-    // Validate path parameters
-    const { wishlistId, itemId } = pathParamsSchema.parse(params)
+    const { wishlistId, itemId } = itemPathParamsSchema.parse(params)
 
-    // Check if wishlist exists
-    const wishlist = db
-      .select()
-      .from(wishlists)
-      .where(eq(wishlists.id, wishlistId))
-      .get()
+    const wishlist = requireWishlist(wishlistId)
+    if (wishlist.response) return wishlist.response
 
-    if (!wishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
+    const validated = wishlistItemUpdateSchema.parse(await request.json())
 
-    // Parse and validate the request body
-    const body = await request.json()
-    const validated = wishlistItemUpdateSchema.parse(body)
-
-    // Check if at least one field is provided for update
+    // Undefined values are dropped below, so a body of only undefined fields
+    // would issue an update that changes nothing but updatedAt.
     const providedFields = Object.keys(validated).filter(
       (key) => validated[key as keyof typeof validated] !== undefined,
     )
 
     if (providedFields.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message:
-            'Mindestens ein Feld muss für die Aktualisierung angegeben werden',
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
+      return badRequest(
+        'Mindestens ein Feld muss für die Aktualisierung angegeben werden',
       )
     }
 
-    // Check if wishlist item exists
-    const existingItem = db
-      .select()
-      .from(wishlistItems)
-      .where(
-        and(
-          eq(wishlistItems.id, itemId),
-          eq(wishlistItems.wishlistId, wishlistId),
-        ),
-      )
-      .get()
+    const existing = requireWishlistItem(wishlistId, itemId)
+    if (existing.response) return existing.response
 
-    if (!existingItem) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschlistenelement nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Only update fields that were provided in the request
-    const updateData = {
-      ...validated,
-      updatedAt: new Date(),
-    }
-
-    // Remove undefined values to avoid updating with undefined, but keep null values
-    // to allow clearing fields
+    // Drop undefined so absent fields are left alone, but keep null so a field
+    // can be cleared explicitly.
     const cleanUpdateData = Object.fromEntries(
-      Object.entries(updateData).filter(([_, value]) => value !== undefined),
+      Object.entries({ ...validated, updatedAt: new Date() }).filter(
+        ([, value]) => value !== undefined,
+      ),
     )
 
-    // Update wishlist item in database
     const updatedItem = db
       .update(wishlistItems)
       .set(cleanUpdateData)
-      .where(
-        and(
-          eq(wishlistItems.id, itemId),
-          eq(wishlistItems.wishlistId, wishlistId),
-        ),
-      )
+      .where(itemScope(wishlistId, itemId))
       .returning()
       .get()
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Wunschlistenelement erfolgreich aktualisiert',
-        data: updatedItem,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return ok(updatedItem, 'Wunschlistenelement erfolgreich aktualisiert')
   } catch (error) {
-    console.error('Error updating wishlist item:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Aktualisieren des Wunschlistenelements',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error updating wishlist item',
+      message: 'Fehler beim Aktualisieren des Wunschlistenelements',
+    })
   }
 }
 
 // DELETE - Delete a specific wishlist item
 export const DELETE: APIRoute = async ({ params }) => {
   try {
-    // Validate path parameters
-    const { wishlistId, itemId } = pathParamsSchema.parse(params)
+    const { wishlistId, itemId } = itemPathParamsSchema.parse(params)
 
-    // Check if wishlist exists
-    const wishlist = db
-      .select()
-      .from(wishlists)
-      .where(eq(wishlists.id, wishlistId))
-      .get()
+    const wishlist = requireWishlist(wishlistId)
+    if (wishlist.response) return wishlist.response
 
-    if (!wishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Try to find and delete the wishlist item
+    // The delete is scoped to the wishlist, so a missing row and an out-of-scope
+    // row are indistinguishable here; both answer 404.
     const deletedItem = db
       .delete(wishlistItems)
-      .where(
-        and(
-          eq(wishlistItems.id, itemId),
-          eq(wishlistItems.wishlistId, wishlistId),
-        ),
-      )
+      .where(itemScope(wishlistId, itemId))
       .returning()
       .get()
 
     if (!deletedItem) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschlistenelement nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
+      return json(
+        { success: false, message: 'Wunschlistenelement nicht gefunden' },
+        404,
       )
     }
 
-    return new Response(
-      JSON.stringify({
+    // This route reports the removed id rather than a data payload.
+    return json(
+      {
         success: true,
         message: 'Wunschlistenelement erfolgreich gelöscht',
         deletedId: itemId,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      200,
     )
   } catch (error) {
-    console.error('Error deleting wishlist item:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Löschen des Wunschlistenelements',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error deleting wishlist item',
+      message: 'Fehler beim Löschen des Wunschlistenelements',
+    })
   }
 }

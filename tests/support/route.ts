@@ -1,12 +1,16 @@
 import type { APIRoute } from 'astro'
 
 /**
- * Astro route handlers only ever read `params` and `request`, so tests build a
+ * Astro route handlers only read `params`, `request` and `url`, so tests build a
  * minimal context and cast rather than constructing a full APIContext.
  */
 export function callRoute(
   route: APIRoute,
-  options: { params?: Record<string, string>; body?: unknown; url?: string },
+  options: {
+    params?: Record<string, string>
+    body?: unknown
+    url?: string
+  } = {},
 ): Promise<Response> {
   const { params = {}, body, url = 'http://localhost/' } = options
 
@@ -17,7 +21,13 @@ export function callRoute(
   })
 
   return Promise.resolve(
-    route({ params, request } as unknown as Parameters<APIRoute>[0]),
+    route({
+      params,
+      request,
+      // Astro exposes the parsed URL separately; list routes read query
+      // parameters from it rather than from the request.
+      url: new URL(url),
+    } as unknown as Parameters<APIRoute>[0]),
   ) as Promise<Response>
 }
 

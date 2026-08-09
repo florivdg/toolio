@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { db } from '@/db/database'
 import { wishlists, wishlistItems, wishlistSchema } from '@/db/schema/wishlists'
 import { desc, count, eq } from 'drizzle-orm'
+import { json } from '@/lib/api/responses'
+import { handleApiError } from '@/lib/api/wishlist-guards'
 
 // Schema for query parameters
 const queryParamsSchema = z.object({
@@ -61,8 +63,9 @@ export const GET: APIRoute = async ({ url }) => {
     const countResult = db.select({ count: count() }).from(wishlists).get()
     const totalCount = countResult?.count ?? 0
 
-    return new Response(
-      JSON.stringify({
+    // Carries a pagination block alongside data, so it does not use ok().
+    return json(
+      {
         success: true,
         data: wishlistsWithItems,
         pagination: {
@@ -71,48 +74,14 @@ export const GET: APIRoute = async ({ url }) => {
           total: totalCount,
           hasMore: offset + limit < totalCount,
         },
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      200,
     )
   } catch (error) {
-    console.error('Error fetching wishlists:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Laden der Wunschlisten',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error fetching wishlists',
+      message: 'Fehler beim Laden der Wunschlisten',
+    })
   }
 }
 
@@ -139,52 +108,19 @@ export const POST: APIRoute = async ({ request }) => {
       latestItems: [],
     }
 
-    return new Response(
-      JSON.stringify({
+    // 201 rather than the 200 that ok() returns.
+    return json(
+      {
         success: true,
         message: 'Wunschliste erfolgreich erstellt',
         data: responseData,
-      }),
-      {
-        status: 201,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      201,
     )
   } catch (error) {
-    console.error('Error creating wishlist:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Erstellen der Wunschliste',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error creating wishlist',
+      message: 'Fehler beim Erstellen der Wunschliste',
+    })
   }
 }
