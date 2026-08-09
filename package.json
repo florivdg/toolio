@@ -24,7 +24,6 @@
     "@better-auth/passkey": "^1.6.26",
     "@pinia/colada": "^1.4.2",
     "@tailwindcss/vite": "^4.3.3",
-    "@tanstack/vue-table": "^9.1.2",
     "@vueuse/core": "^14.4.0",
     "astro": "7.2.0",
     "better-auth": "^1.6.26",

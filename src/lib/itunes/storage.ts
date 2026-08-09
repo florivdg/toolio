@@ -45,37 +45,12 @@ export async function lookupAndStoreItem(
 }
 
 /**
- * Lookup and store an iTunes track by its trackId (legacy method)
- *
- * @param trackId The iTunes trackId to lookup and store
- * @param country The country code (defaults to "de")
- * @returns The mediaItemId
- */
-export async function lookupAndStoreTrack(trackId: number, country = 'de') {
-  return lookupAndStoreItem(trackId, false, country)
-}
-
-/**
- * Lookup and store an iTunes collection by its collectionId
- *
- * @param collectionId The iTunes collectionId to lookup and store
- * @param country The country code (defaults to "de")
- * @returns The mediaItemId
- */
-export async function lookupAndStoreCollection(
-  collectionId: number,
-  country = 'de',
-) {
-  return lookupAndStoreItem(collectionId, true, country)
-}
-
-/**
  * Save or update an iTunes media item in the database
  *
  * @param itunesData The iTunes track data
  * @returns The ID of the saved media item
  */
-export async function saveItunesMediaItem(itunesData: any): Promise<string> {
+async function saveItunesMediaItem(itunesData: any): Promise<string> {
   // Map iTunes data to our schema
   const mediaItemData = mapItunesDataToMediaItem(itunesData)
 
@@ -228,7 +203,7 @@ function hasPriceDropped(
  * @param itunesData The iTunes track data
  * @returns True if a new price entry was saved, false if price unchanged
  */
-export async function savePriceHistory(
+async function savePriceHistory(
   mediaItemId: string,
   itunesData: any,
 ): Promise<boolean> {

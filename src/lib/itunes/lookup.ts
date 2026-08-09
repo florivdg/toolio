@@ -61,7 +61,7 @@ interface LookupResponse {
  * @param params The lookup parameters
  * @returns The lookup response with results
  */
-export async function lookup({
+async function lookup({
   id,
   country = 'de',
 }: LookupParams): Promise<LookupResponse> {

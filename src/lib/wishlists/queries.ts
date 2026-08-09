@@ -10,7 +10,7 @@ export interface WishlistWithItems extends Wishlist {
   latestItems?: Partial<WishlistItem>[]
 }
 
-export interface WishlistsResponse {
+interface WishlistsResponse {
   success: boolean
   data: WishlistWithItems[]
   pagination: {
@@ -21,7 +21,7 @@ export interface WishlistsResponse {
   }
 }
 
-export interface WishlistItemsResponse {
+interface WishlistItemsResponse {
   success: boolean
   data: WishlistItem[]
   pagination: {
@@ -32,23 +32,23 @@ export interface WishlistItemsResponse {
   }
 }
 
-export interface ApiResponse<T> {
+interface ApiResponse<T> {
   success: boolean
   data: T
   message?: string
 }
 
-export interface CreateWishlistData {
+interface CreateWishlistData {
   name: string
   description?: string
 }
 
-export interface UpdateWishlistData {
+interface UpdateWishlistData {
   name?: string
   description?: string
 }
 
-export interface CreateWishlistItemData {
+interface CreateWishlistItemData {
   name: string
   description?: string
   price?: number
@@ -58,7 +58,7 @@ export interface CreateWishlistItemData {
   notes?: string
 }
 
-export interface UpdateWishlistItemData {
+interface UpdateWishlistItemData {
   name?: string
   description?: string
   price?: number

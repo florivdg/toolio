@@ -23,21 +23,6 @@ export function formatPrice(price: number, currency = 'EUR'): string {
 }
 
 /**
- * Format a date string for display
- *
- * @param date The date to format
- * @returns Formatted date string
- */
-export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-/**
  * Check if URL is from a known e-commerce site and return site-specific patterns
  */
 export function getEcommerceSiteInfo(url: string): {

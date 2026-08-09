@@ -11,8 +11,6 @@ const queryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(200).default(20),
 })
 
-export type SearchParams = z.infer<typeof queryParamsSchema>
-
 export const GET: APIRoute = async ({ url }) => {
   try {
     // Parse and validate query parameters

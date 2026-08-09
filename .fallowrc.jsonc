@@ -16,6 +16,13 @@
     "@tailwindcss/typography"
   ],
 
+  // src/components/ui is vendored shadcn-vue. The barrels intentionally re-export
+  // the full component surface, so unused re-exports there are library API rather
+  // than dead code — `shadcn-vue add` would restore anything deleted. Scoped to
+  // unused-export only, so circular dependencies and complexity in these files are
+  // still reported.
+  "ignoreExports": [{ "file": "src/components/ui/*/index.ts", "exports": ["*"] }],
+
   "ignoreDependencyOverrides": [
     // CVE-fix overrides pinning purely transitive @peculiar packages, which have
     // no direct import to point at.

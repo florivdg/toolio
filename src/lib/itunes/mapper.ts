@@ -15,7 +15,7 @@ import { mapCountryCode } from './helpers'
  * @param itunesData The raw data from iTunes API
  * @returns The type classification of the iTunes item
  */
-export function determineItunesItemType(itunesData: any): {
+function determineItunesItemType(itunesData: any): {
   itunesIdType: 'track' | 'collection'
   itunesId: number
   mediaType: string
