@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { withItemDefaults } from '@/lib/wishlists/queries'
-import type { WishlistWithItems } from '@/lib/wishlists/queries'
+import { withItemDefaults } from '@/lib/wishlists/normalize'
+import type { WishlistWithItems } from '@/lib/wishlists/normalize'
 
 /**
  * The create endpoint is trusted to return itemCount and latestItems, but the

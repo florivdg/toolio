@@ -4,12 +4,11 @@ import type { Wishlist, WishlistItem } from '@/db/schema/wishlists'
 import type { MaybeRefOrGetter } from 'vue'
 import { toValue } from 'vue'
 import { fetchData, fetchEnvelope, jsonBody } from '@/lib/api/client'
+import { withItemDefaults } from './normalize'
+import type { WishlistWithItems } from './normalize'
 
-// Extended types for API responses
-export interface WishlistWithItems extends Wishlist {
-  itemCount?: number
-  latestItems?: Partial<WishlistItem>[]
-}
+// Re-exported so components keep importing it from the module they already use.
+export type { WishlistWithItems }
 
 interface Pagination {
   limit: number
@@ -63,24 +62,6 @@ interface UpdateWishlistItemData {
 }
 
 const STALE_TIME = 60000 // 1 minute
-
-/**
- * The create endpoint already returns itemCount and latestItems, but a wishlist
- * rendered straight from this result must not depend on that.
- */
-export function withItemDefaults(
-  wishlist: WishlistWithItems,
-): WishlistWithItems {
-  if (!wishlist?.id) {
-    throw new Error('API-Antwort enthält keine Wishlist-ID')
-  }
-
-  return {
-    ...wishlist,
-    itemCount: wishlist.itemCount ?? 0,
-    latestItems: wishlist.latestItems ?? [],
-  }
-}
 
 /** Every item mutation refreshes the same three views of a wishlist. */
 function invalidateWishlist(

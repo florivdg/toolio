@@ -1,2 +1,8 @@
 [test]
-preload = ["./tests/support/setup.ts"]
+# Order matters: the DOM must exist before @vue/runtime-dom is first imported,
+# since it captures `document` at module scope.
+preload = [
+  "./tests/support/dom.ts",
+  "./tests/support/vue-plugin.ts",
+  "./tests/support/setup.ts",
+]
