@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.6.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.5.0...v0.6.0)
+
+### 🩹 Fixes
+
+- **security:** Trust X-Forwarded-Proto for the CSRF origin check ([554508c](https://github.com/florivdg/toolio/commit/554508c))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.5.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.4.0...v0.5.0)
