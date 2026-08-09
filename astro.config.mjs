@@ -13,6 +13,13 @@ export default defineConfig({
 
   output: 'server',
 
+  security: {
+    // TLS is terminated by the reverse proxy, so the app itself sees plain
+    // HTTP. Trust `X-Forwarded-Proto` so `Astro.url` (and with it the built-in
+    // CSRF origin check) resolves to https and matches the browser's `Origin`.
+    allowedDomains: [{ protocol: 'https' }],
+  },
+
   integrations: [vue({ appEntrypoint: '@/pages/_app.ts' })],
 
   vite: {
