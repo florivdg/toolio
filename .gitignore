@@ -23,4 +23,7 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# claude code: share settings and hooks, keep per-developer overrides local
+.claude/settings.local.json
+
 sqlite.db
