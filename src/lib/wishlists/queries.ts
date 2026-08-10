@@ -7,9 +7,6 @@ import { fetchData, fetchEnvelope, jsonBody } from '@/lib/api/client'
 import { withItemDefaults } from './normalize'
 import type { WishlistWithItems } from './normalize'
 
-// Re-exported so components keep importing it from the module they already use.
-export type { WishlistWithItems }
-
 interface Pagination {
   limit: number
   offset: number

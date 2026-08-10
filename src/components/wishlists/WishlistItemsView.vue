@@ -126,7 +126,6 @@ import {
   useDeleteWishlistMutation,
   useDeleteWishlistItemMutation,
   useUpdateWishlistItemStatusMutation,
-  type WishlistWithItems,
 } from '@/lib/wishlists/queries'
 import type { WishlistItem } from '@/db/schema/wishlists'
 import { FileText } from 'lucide-vue-next'
