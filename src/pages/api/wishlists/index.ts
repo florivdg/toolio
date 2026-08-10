@@ -3,12 +3,54 @@ import { z } from 'zod'
 import { db } from '@/db/database'
 import { wishlists, wishlistItems, wishlistSchema } from '@/db/schema/wishlists'
 import { desc, count, eq } from 'drizzle-orm'
+import { json } from '@/lib/api/responses'
+import { handleApiError } from '@/lib/api/wishlist-guards'
 
 // Schema for query parameters
 const queryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
 })
+
+/** How many items each wishlist shows in its card preview. */
+const PREVIEW_ITEM_COUNT = 3
+
+/** One page of wishlists, each with the number of items it holds. */
+function selectWishlistPage(limit: number, offset: number) {
+  return db
+    .select({
+      id: wishlists.id,
+      name: wishlists.name,
+      description: wishlists.description,
+      createdAt: wishlists.createdAt,
+      updatedAt: wishlists.updatedAt,
+      itemCount: count(wishlistItems.id),
+    })
+    .from(wishlists)
+    .leftJoin(wishlistItems, eq(wishlists.id, wishlistItems.wishlistId))
+    .groupBy(wishlists.id)
+    .orderBy(desc(wishlists.createdAt))
+    .limit(limit)
+    .offset(offset)
+    .all()
+}
+
+/** The newest few items of one wishlist, for its card preview. */
+function selectLatestItems(wishlistId: string) {
+  return db
+    .select({
+      id: wishlistItems.id,
+      name: wishlistItems.name,
+      imageUrl: wishlistItems.imageUrl,
+      url: wishlistItems.url,
+      price: wishlistItems.price,
+    })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.wishlistId, wishlistId))
+    .orderBy(desc(wishlistItems.createdAt))
+    .limit(PREVIEW_ITEM_COUNT)
+    .all()
+}
 
 // GET - List all wishlists
 export const GET: APIRoute = async ({ url }) => {
@@ -17,52 +59,20 @@ export const GET: APIRoute = async ({ url }) => {
     const params = Object.fromEntries(url.searchParams.entries())
     const { limit, offset } = queryParamsSchema.parse(params)
 
-    // Fetch wishlists with item counts from database
-    const wishlistsData = db
-      .select({
-        id: wishlists.id,
-        name: wishlists.name,
-        description: wishlists.description,
-        createdAt: wishlists.createdAt,
-        updatedAt: wishlists.updatedAt,
-        itemCount: count(wishlistItems.id),
-      })
-      .from(wishlists)
-      .leftJoin(wishlistItems, eq(wishlists.id, wishlistItems.wishlistId))
-      .groupBy(wishlists.id)
-      .orderBy(desc(wishlists.createdAt))
-      .limit(limit)
-      .offset(offset)
-      .all()
-
-    // Fetch latest 3 items for each wishlist
-    const wishlistsWithItems = wishlistsData.map((wishlist) => {
-      const latestItems = db
-        .select({
-          id: wishlistItems.id,
-          name: wishlistItems.name,
-          imageUrl: wishlistItems.imageUrl,
-          url: wishlistItems.url,
-          price: wishlistItems.price,
-        })
-        .from(wishlistItems)
-        .where(eq(wishlistItems.wishlistId, wishlist.id))
-        .orderBy(desc(wishlistItems.createdAt))
-        .limit(3)
-        .all()
-
-      return {
+    const wishlistsWithItems = selectWishlistPage(limit, offset).map(
+      (wishlist) => ({
         ...wishlist,
-        latestItems,
-      }
-    })
+        latestItems: selectLatestItems(wishlist.id),
+      }),
+    )
 
     // Get total count for pagination
-    const countResult = db.select({ count: count() }).from(wishlists).get()
-    const totalCount = countResult?.count ?? 0
+    const totalCount =
+      db.select({ count: count() }).from(wishlists).get()?.count ?? 0
 
-    return new Response(
-      JSON.stringify({
+    // Carries a pagination block alongside data, so it does not use ok().
+    return json(
+      {
         success: true,
         data: wishlistsWithItems,
         pagination: {
@@ -71,48 +81,14 @@ export const GET: APIRoute = async ({ url }) => {
           total: totalCount,
           hasMore: offset + limit < totalCount,
         },
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      200,
     )
   } catch (error) {
-    console.error('Error fetching wishlists:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Laden der Wunschlisten',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error fetching wishlists',
+      message: 'Fehler beim Laden der Wunschlisten',
+    })
   }
 }
 
@@ -139,52 +115,19 @@ export const POST: APIRoute = async ({ request }) => {
       latestItems: [],
     }
 
-    return new Response(
-      JSON.stringify({
+    // 201 rather than the 200 that ok() returns.
+    return json(
+      {
         success: true,
         message: 'Wunschliste erfolgreich erstellt',
         data: responseData,
-      }),
-      {
-        status: 201,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      201,
     )
   } catch (error) {
-    console.error('Error creating wishlist:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Erstellen der Wunschliste',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error creating wishlist',
+      message: 'Fehler beim Erstellen der Wunschliste',
+    })
   }
 }

@@ -9,25 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Plus, Trash2, KeyRound } from 'lucide-vue-next'
-
-interface Passkey {
-  id: string
-  name: string | null
-  deviceType: string
-  backedUp: boolean
-  createdAt: string
-}
+import { Loader2, Plus, KeyRound } from 'lucide-vue-next'
+import PasskeyTable from './PasskeyTable.vue'
+import type { Passkey } from '@/lib/passkeys'
 
 const passkeys = ref<Passkey[]>([])
 const isLoading = ref(false)
@@ -61,20 +47,19 @@ async function addPasskey() {
 
   isAddingPasskey.value = true
   try {
-    const result = await passkey.addPasskey({
-      name: passkeyName.value.trim(),
-    })
+    const result = await passkey.addPasskey({ name: passkeyName.value.trim() })
 
-    // Check for errors from the passkey operation
+    // The client reports a rejected registration in the result rather than by
+    // throwing, so both paths have to be handled.
     if (result?.error) {
       error.value =
         result.error.message || 'Fehler beim Hinzufügen des Passkeys'
-    } else {
-      // Success case
-      passkeyName.value = ''
-      await loadPasskeys()
-      error.value = ''
+      return
     }
+
+    passkeyName.value = ''
+    await loadPasskeys()
+    error.value = ''
   } catch (err) {
     error.value = 'Fehler beim Hinzufügen des Passkey'
     console.error('Error adding passkey:', err)
@@ -109,27 +94,6 @@ async function deletePasskey(id: string) {
   }
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function getDeviceTypeLabel(deviceType: string) {
-  switch (deviceType) {
-    case 'singleDevice':
-      return 'Einzelgerät'
-    case 'multiDevice':
-      return 'Mehrere Geräte'
-    default:
-      return deviceType
-  }
-}
-
 onMounted(() => {
   loadPasskeys()
 })
@@ -148,28 +112,23 @@ onMounted(() => {
     </CardHeader>
     <CardContent class="space-y-6">
       <!-- Add Passkey Form -->
-      <div class="space-y-4">
-        <div class="grid gap-2">
-          <Label for="passkey-name">Neuen Passkey hinzufügen</Label>
-          <div class="flex gap-2">
-            <Input
-              id="passkey-name"
-              v-model="passkeyName"
-              placeholder="z.B. Mein MacBook"
-              :disabled="isAddingPasskey"
-            />
-            <Button
-              @click="addPasskey"
-              :disabled="isAddingPasskey || !passkeyName.trim()"
-            >
-              <Loader2
-                v-if="isAddingPasskey"
-                class="mr-2 h-4 w-4 animate-spin"
-              />
-              <Plus v-else class="mr-2 h-4 w-4" />
-              {{ isAddingPasskey ? 'Wird hinzugefügt...' : 'Hinzufügen' }}
-            </Button>
-          </div>
+      <div class="grid gap-2">
+        <Label for="passkey-name">Neuen Passkey hinzufügen</Label>
+        <div class="flex gap-2">
+          <Input
+            id="passkey-name"
+            v-model="passkeyName"
+            placeholder="z.B. Mein MacBook"
+            :disabled="isAddingPasskey"
+          />
+          <Button
+            @click="addPasskey"
+            :disabled="isAddingPasskey || !passkeyName.trim()"
+          >
+            <Loader2 v-if="isAddingPasskey" class="mr-2 h-4 w-4 animate-spin" />
+            <Plus v-else class="mr-2 h-4 w-4" />
+            {{ isAddingPasskey ? 'Wird hinzugefügt...' : 'Hinzufügen' }}
+          </Button>
         </div>
       </div>
 
@@ -197,49 +156,7 @@ onMounted(() => {
           </p>
         </div>
 
-        <Table v-else>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Gerätetyp</TableHead>
-              <TableHead>Gesichert</TableHead>
-              <TableHead>Erstellt am</TableHead>
-              <TableHead class="w-16">Aktionen</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="passkey in passkeys" :key="passkey.id">
-              <TableCell class="font-medium">
-                {{ passkey.name || 'Unbenannt' }}
-              </TableCell>
-              <TableCell>
-                {{ getDeviceTypeLabel(passkey.deviceType) }}
-              </TableCell>
-              <TableCell>
-                <span
-                  :class="
-                    passkey.backedUp ? 'text-green-600' : 'text-orange-600'
-                  "
-                >
-                  {{ passkey.backedUp ? 'Ja' : 'Nein' }}
-                </span>
-              </TableCell>
-              <TableCell>
-                {{ formatDate(passkey.createdAt) }}
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  @click="deletePasskey(passkey.id)"
-                  class="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 class="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <PasskeyTable v-else :passkeys="passkeys" @delete="deletePasskey" />
       </div>
     </CardContent>
   </Card>

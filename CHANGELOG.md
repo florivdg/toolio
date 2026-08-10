@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.7.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.6.0...v0.7.0)
+
+### 🩹 Fixes
+
+- **wishlists:** Await mutateAsync so saving closes the dialog ([39e8df0](https://github.com/florivdg/toolio/commit/39e8df0))
+
+### 💅 Refactors
+
+- **api:** Extract shared wishlist route helpers and fix a filter bug ([0128846](https://github.com/florivdg/toolio/commit/0128846))
+- **queries:** Extract client fetch/unwrap and generate the status routes ([c3162ce](https://github.com/florivdg/toolio/commit/c3162ce))
+- **wishlists:** Split the views into cards and share the item form logic between both modals ([7515e23](https://github.com/florivdg/toolio/commit/7515e23))
+- **itunes:** Split the grids into cards and move their logic into lib ([4232f2e](https://github.com/florivdg/toolio/commit/4232f2e))
+- **auth,wishlists:** Extract testable logic and cover the remaining paths ([2b397fd](https://github.com/florivdg/toolio/commit/2b397fd))
+- **quality:** Clear dead code, circular dependencies and oversized functions ([c2bfa41](https://github.com/florivdg/toolio/commit/c2bfa41))
+
+### 🏡 Chore
+
+- **tooling:** Add fallow with Claude Code agent gate ([eda15e3](https://github.com/florivdg/toolio/commit/eda15e3))
+- **docs:** Add reference to AGENTS.md in CLAUDE.md ([638feef](https://github.com/florivdg/toolio/commit/638feef))
+
+### 🤖 CI
+
+- Run lint, types, unit tests, build and e2e on every pull request ([3dcaf00](https://github.com/florivdg/toolio/commit/3dcaf00))
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.6.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.5.0...v0.6.0)

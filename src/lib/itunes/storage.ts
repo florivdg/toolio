@@ -8,6 +8,12 @@ import { itunesMediaItem, itunesPriceHistory } from '@/db/schema/itunes'
 import { eq, desc } from 'drizzle-orm'
 import { lookupTrack, lookupCollection } from './lookup'
 import { mapItunesDataToMediaItem, mapItunesDataToPriceHistory } from './mapper'
+import {
+  formatPriceDropMessage,
+  hasPriceChanged,
+  hasPriceDropped,
+} from './price-changes'
+import type { NotifiableItem, PriceDropInfo } from './price-changes'
 import { sendNotification } from '@/lib/notifications'
 
 /**
@@ -45,37 +51,12 @@ export async function lookupAndStoreItem(
 }
 
 /**
- * Lookup and store an iTunes track by its trackId (legacy method)
- *
- * @param trackId The iTunes trackId to lookup and store
- * @param country The country code (defaults to "de")
- * @returns The mediaItemId
- */
-export async function lookupAndStoreTrack(trackId: number, country = 'de') {
-  return lookupAndStoreItem(trackId, false, country)
-}
-
-/**
- * Lookup and store an iTunes collection by its collectionId
- *
- * @param collectionId The iTunes collectionId to lookup and store
- * @param country The country code (defaults to "de")
- * @returns The mediaItemId
- */
-export async function lookupAndStoreCollection(
-  collectionId: number,
-  country = 'de',
-) {
-  return lookupAndStoreItem(collectionId, true, country)
-}
-
-/**
  * Save or update an iTunes media item in the database
  *
  * @param itunesData The iTunes track data
  * @returns The ID of the saved media item
  */
-export async function saveItunesMediaItem(itunesData: any): Promise<string> {
+async function saveItunesMediaItem(itunesData: any): Promise<string> {
   // Map iTunes data to our schema
   const mediaItemData = mapItunesDataToMediaItem(itunesData)
 
@@ -126,101 +107,6 @@ function getLatestPriceHistory(mediaItemId: string) {
 }
 
 /**
- * Compare two price data objects to check if prices have changed
- *
- * @param newPriceData The new price data
- * @param latestPriceData The latest stored price data
- * @returns True if prices have changed, false otherwise
- */
-function hasPriceChanged(newPriceData: any, latestPriceData: any): boolean {
-  // Compare standard prices
-  if (newPriceData.standardPrice !== latestPriceData.standardPrice) {
-    return true
-  }
-
-  // Compare HD prices
-  if (newPriceData.hdPrice !== latestPriceData.hdPrice) {
-    return true
-  }
-
-  // Compare additional price data
-  const newAdditionalData = newPriceData.additionalPriceData
-    ? JSON.parse(newPriceData.additionalPriceData)
-    : {}
-  const latestAdditionalData = latestPriceData.additionalPriceData
-    ? JSON.parse(latestPriceData.additionalPriceData)
-    : {}
-
-  // Compare each price field in additional data
-  const allPriceKeys = new Set([
-    ...Object.keys(newAdditionalData),
-    ...Object.keys(latestAdditionalData),
-  ])
-
-  for (const key of allPriceKeys) {
-    if (newAdditionalData[key] !== latestAdditionalData[key]) {
-      return true
-    }
-  }
-
-  return false
-}
-
-/**
- * Check if any price has dropped compared to the latest price data
- *
- * @param newPriceData The new price data
- * @param latestPriceData The latest stored price data
- * @returns Object indicating if prices dropped and which prices dropped
- */
-function hasPriceDropped(
-  newPriceData: any,
-  latestPriceData: any,
-): {
-  dropped: boolean
-  standardPriceDropped: boolean
-  hdPriceDropped: boolean
-  oldStandardPrice?: number
-  newStandardPrice?: number
-  oldHdPrice?: number
-  newHdPrice?: number
-} {
-  let dropped = false
-  let standardPriceDropped = false
-  let hdPriceDropped = false
-
-  // Check standard price drop
-  const oldStandardPrice = latestPriceData.standardPrice
-  const newStandardPrice = newPriceData.standardPrice
-  if (
-    oldStandardPrice != null &&
-    newStandardPrice != null &&
-    newStandardPrice < oldStandardPrice
-  ) {
-    dropped = true
-    standardPriceDropped = true
-  }
-
-  // Check HD price drop
-  const oldHdPrice = latestPriceData.hdPrice
-  const newHdPrice = newPriceData.hdPrice
-  if (oldHdPrice != null && newHdPrice != null && newHdPrice < oldHdPrice) {
-    dropped = true
-    hdPriceDropped = true
-  }
-
-  return {
-    dropped,
-    standardPriceDropped,
-    hdPriceDropped,
-    oldStandardPrice,
-    newStandardPrice,
-    oldHdPrice,
-    newHdPrice,
-  }
-}
-
-/**
  * Save a price history entry for an iTunes media item
  * Only saves if the price has changed from the last recorded price
  *
@@ -228,7 +114,7 @@ function hasPriceDropped(
  * @param itunesData The iTunes track data
  * @returns True if a new price entry was saved, false if price unchanged
  */
-export async function savePriceHistory(
+async function savePriceHistory(
   mediaItemId: string,
   itunesData: any,
 ): Promise<boolean> {
@@ -254,6 +140,61 @@ export async function savePriceHistory(
   return false
 }
 
+/** A stored media item as the price refresh needs it. */
+interface StoredMediaItem extends NotifiableItem {
+  id: string
+  itunesIdType: string
+}
+
+/**
+ * Announce a price drop, swallowing notification failures.
+ *
+ * A broken notification endpoint must not turn a successful price refresh into
+ * a reported error.
+ */
+async function notifyPriceDrop(item: StoredMediaItem, info: PriceDropInfo) {
+  try {
+    await sendNotification(formatPriceDropMessage(item, info))
+  } catch (notificationError) {
+    console.error('Failed to send price drop notification:', notificationError)
+  }
+}
+
+/**
+ * Refresh one item's price, notifying if it dropped.
+ *
+ * @returns Whether a new price history row was written
+ * @throws If the item can no longer be found in the iTunes store
+ */
+async function refreshItemPrice(
+  item: StoredMediaItem,
+): Promise<'updated' | 'unchanged'> {
+  // Always look up against "de", regardless of the country stored on the item.
+  const lookupResponse =
+    item.itunesIdType === 'collection'
+      ? await lookupCollection(item.itunesId, 'de')
+      : await lookupTrack(item.itunesId, 'de')
+
+  if (lookupResponse.resultCount === 0) {
+    throw new Error('Item not found in iTunes store')
+  }
+
+  const itunesData = lookupResponse.results[0]
+  const latestPriceHistory = getLatestPriceHistory(item.id)
+
+  // Compare before saving — afterwards the new row would be the latest one.
+  if (latestPriceHistory) {
+    const priceDropInfo = hasPriceDropped(
+      mapItunesDataToPriceHistory(itunesData, item.id),
+      latestPriceHistory,
+    )
+
+    if (priceDropInfo.dropped) await notifyPriceDrop(item, priceDropInfo)
+  }
+
+  return (await savePriceHistory(item.id, itunesData)) ? 'updated' : 'unchanged'
+}
+
 /**
  * Update prices for all stored media items
  *
@@ -269,123 +210,45 @@ export async function updateAllMediaItemPrices(): Promise<{
   errors: number
   errorDetails: Array<{ mediaItemId: string; itunesId: number; error: string }>
 }> {
-  // Get all stored media items
   const mediaItems = db
     .select({
       id: itunesMediaItem.id,
       itunesId: itunesMediaItem.itunesId,
       itunesIdType: itunesMediaItem.itunesIdType,
-      country: itunesMediaItem.country,
       name: itunesMediaItem.name,
       artistName: itunesMediaItem.artistName,
       viewUrl: itunesMediaItem.viewUrl,
-      currency: itunesMediaItem.currency,
     })
     .from(itunesMediaItem)
     .all()
 
-  const total = mediaItems.length
   let updated = 0
   let unchanged = 0
-  let errors = 0
   const errorDetails: Array<{
     mediaItemId: string
     itunesId: number
     error: string
   }> = []
 
-  // Process each media item
+  // One failing item must not stop the run, so every outcome is collected.
   for (const item of mediaItems) {
     try {
-      // Use the appropriate lookup function based on item type
-      // Always use "de" as country for lookups, regardless of stored country
-      const lookupResponse =
-        item.itunesIdType === 'collection'
-          ? await lookupCollection(item.itunesId, 'de')
-          : await lookupTrack(item.itunesId, 'de')
-
-      if (lookupResponse.resultCount === 0) {
-        errors++
-        errorDetails.push({
-          mediaItemId: item.id,
-          itunesId: item.itunesId,
-          error: 'Item not found in iTunes store',
-        })
-        continue
-      }
-
-      // Get the first result (should be the item we want)
-      const itunesData = lookupResponse.results[0]
-
-      // Get the latest price history to check for price drops
-      const latestPriceHistory = getLatestPriceHistory(item.id)
-
-      // Map iTunes data to our price history schema
-      const newPriceData = mapItunesDataToPriceHistory(itunesData, item.id)
-
-      // Check for price drops before saving new price
-      if (latestPriceHistory) {
-        const priceDropInfo = hasPriceDropped(newPriceData, latestPriceHistory)
-
-        if (priceDropInfo.dropped) {
-          // Send notification for price drop
-          try {
-            let priceInfo = ''
-            if (
-              priceDropInfo.standardPriceDropped &&
-              priceDropInfo.hdPriceDropped
-            ) {
-              priceInfo = `Standardpreis: ${priceDropInfo.oldStandardPrice}€ → ${priceDropInfo.newStandardPrice}€\nHD-Preis: ${priceDropInfo.oldHdPrice}€ → ${priceDropInfo.newHdPrice}€`
-            } else if (priceDropInfo.standardPriceDropped) {
-              priceInfo = `Preis: ${priceDropInfo.oldStandardPrice}€ → ${priceDropInfo.newStandardPrice}€`
-            } else if (priceDropInfo.hdPriceDropped) {
-              priceInfo = `HD-Preis: ${priceDropInfo.oldHdPrice}€ → ${priceDropInfo.newHdPrice}€`
-            }
-
-            const itemName = item.artistName
-              ? `${item.artistName} - ${item.name}`
-              : item.name
-            const itunesLink =
-              item.viewUrl ||
-              `https://music.apple.com/de/album/id${item.itunesId}`
-
-            const message = `🤑🤑🤑 Preissenkung bei "${itemName}"!\n\n${priceInfo}\n\n${itunesLink}`
-
-            await sendNotification(message)
-          } catch (notificationError) {
-            console.error(
-              'Failed to send price drop notification:',
-              notificationError,
-            )
-            // Don't fail the entire update process due to notification errors
-          }
-        }
-      }
-
-      // Save new price history entry only if price changed
-      const priceChanged = await savePriceHistory(item.id, itunesData)
-      if (priceChanged) {
-        updated++
-      } else {
-        unchanged++
-      }
+      if ((await refreshItemPrice(item)) === 'updated') updated++
+      else unchanged++
     } catch (error) {
-      errors++
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
       errorDetails.push({
         mediaItemId: item.id,
         itunesId: item.itunesId,
-        error: errorMessage,
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
   }
 
   return {
-    total,
+    total: mediaItems.length,
     updated,
     unchanged,
-    errors,
+    errors: errorDetails.length,
     errorDetails,
   }
 }
