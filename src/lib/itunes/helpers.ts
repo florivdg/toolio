@@ -92,6 +92,23 @@ export function getMediaType(result: SearchResult): string {
   return 'Medien'
 }
 
+/** Shown when a result carries no artwork at all. */
+export const ARTWORK_PLACEHOLDER = '/placeholder-image.svg'
+
+/**
+ * Upgrade an iTunes artwork URL to a larger webp rendition.
+ *
+ * iTunes encodes the size in the filename, so swapping it is how a bigger
+ * image is requested. Anything without a recognised size is returned unchanged.
+ */
+export function optimizeArtworkUrl(baseUrl: string): string {
+  return baseUrl
+    .replace('/100x100bb.jpg', '/536x0w.webp')
+    .replace('/60x60bb.jpg', '/536x0w.webp')
+    .replace('/30x30bb.jpg', '/536x0w.webp')
+    .replace('/600x600bb.jpg', '/536x0w.webp')
+}
+
 /**
  * Get optimized artwork URL from iTunes search result
  *
@@ -105,16 +122,38 @@ export function getArtworkUrl(result: SearchResult): string {
     result.artworkUrl60 ||
     result.artworkUrl30
 
-  if (!baseUrl) {
-    return '/placeholder-image.svg'
-  }
+  return baseUrl ? optimizeArtworkUrl(baseUrl) : ARTWORK_PLACEHOLDER
+}
 
-  // Replace common iTunes artwork URL patterns with higher quality webp format
-  return baseUrl
-    .replace('/100x100bb.jpg', '/536x0w.webp')
-    .replace('/60x60bb.jpg', '/536x0w.webp')
-    .replace('/30x30bb.jpg', '/536x0w.webp')
-    .replace('/600x600bb.jpg', '/536x0w.webp')
+/**
+ * The iTunes id of a result, preferring the track over the collection.
+ *
+ * @throws When the result carries neither, which means it cannot be stored
+ */
+export function getItunesId(result: SearchResult): number {
+  if (typeof result.trackId === 'number') return result.trackId
+  if (typeof result.collectionId === 'number') return result.collectionId
+
+  throw new Error('Kein gültiger iTunes-Identifier gefunden.')
+}
+
+/**
+ * The price to show for a search result, preferring HD over standard.
+ *
+ * @returns The formatted price, or null when the result has no price
+ */
+export function getResultPrice(result: SearchResult): string | null {
+  const price =
+    result.trackHdPrice ||
+    result.collectionHdPrice ||
+    result.trackPrice ||
+    result.collectionPrice
+
+  // A result with only an HD price and no base price is a data anomaly rather
+  // than something for sale, so the base price gates the whole lookup.
+  if (!result.trackPrice && !result.collectionPrice) return null
+
+  return price && result.currency ? formatPrice(price, result.currency) : null
 }
 
 /**

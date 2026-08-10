@@ -85,61 +85,7 @@
 
           <div class="space-y-2">
             <Label :for="`${fieldPrefix}-priority`">Priorität</Label>
-            <Select v-model="formData.priority">
-              <SelectTrigger>
-                <SelectValue placeholder="Wählen Sie..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">
-                  <div class="flex items-center gap-2">
-                    <Star class="h-4 w-4" />
-                    Niedrig (1)
-                  </div>
-                </SelectItem>
-                <SelectItem value="2">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Mittel-niedrig (2)
-                  </div>
-                </SelectItem>
-                <SelectItem value="3">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Mittel (3)
-                  </div>
-                </SelectItem>
-                <SelectItem value="4">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Hoch (4)
-                  </div>
-                </SelectItem>
-                <SelectItem value="5">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Sehr hoch (5)
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <WishlistPrioritySelect v-model="formData.priority" />
           </div>
         </div>
 
@@ -179,19 +125,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Star, ChevronDown, Sparkles, Loader2 } from 'lucide-vue-next'
+import { ChevronDown, Sparkles, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import WishlistPrioritySelect from './WishlistPrioritySelect.vue'
 import { DialogFooter, DialogClose } from '@/components/ui/dialog'
 import {
   Collapsible,
@@ -199,24 +139,15 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 
-// Types
-interface FormData {
-  name: string
-  description: string
-  price: string
-  url: string
-  imageUrl: string
-  priority: string
-  notes: string
-}
-
-interface ExtractedData {
-  name?: string
-  description?: string
-  price?: number
-  imageUrl?: string
-  confidence: 'high' | 'medium' | 'low'
-}
+import {
+  extractionMessage,
+  hasOptionalDetails,
+  mergeExtractedDetails,
+} from '@/lib/wishlists/item-form'
+import type {
+  ExtractedDetails,
+  WishlistItemFormData as FormData,
+} from '@/lib/wishlists/item-form'
 
 // Props
 interface Props {
@@ -265,45 +196,16 @@ async function extractUrlDetails() {
       throw new Error(result.error || 'Fehler beim Extrahieren der URL-Details')
     }
 
-    const extractedData: ExtractedData = result.data
+    const extractedData: ExtractedDetails = result.data
 
-    // Update form data with extracted information
-    const updatedFormData = { ...props.formData }
-
-    if (extractedData.name && !updatedFormData.name.trim()) {
-      updatedFormData.name = extractedData.name
-    }
-
-    if (extractedData.description && !updatedFormData.description.trim()) {
-      updatedFormData.description = extractedData.description
-    }
-
-    if (extractedData.price && !updatedFormData.price.trim()) {
-      updatedFormData.price = extractedData.price.toString()
-    }
-
-    if (extractedData.imageUrl && !updatedFormData.imageUrl.trim()) {
-      updatedFormData.imageUrl = extractedData.imageUrl
-    }
-
-    emit('update:formData', updatedFormData)
-
-    // Show success message based on confidence
-    const confidenceMessages = {
-      high: 'Produktdetails erfolgreich extrahiert! 🎉',
-      medium:
-        'Einige Produktdetails gefunden. Bitte überprüfen Sie die Angaben.',
-      low: 'Wenige Details gefunden. Bitte ergänzen Sie die fehlenden Informationen.',
-    }
-
-    toast.success(confidenceMessages[extractedData.confidence])
+    emit(
+      'update:formData',
+      mergeExtractedDetails(props.formData, extractedData),
+    )
+    toast.success(extractionMessage(extractedData.confidence))
 
     // Automatically expand advanced fields if we extracted optional data
-    if (
-      extractedData.description ||
-      extractedData.price ||
-      extractedData.imageUrl
-    ) {
+    if (hasOptionalDetails(extractedData)) {
       showAdvancedFields.value = true
     }
   } catch (error) {

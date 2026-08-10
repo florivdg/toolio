@@ -2,19 +2,27 @@ import type { APIRoute } from 'astro'
 import { db } from '@/db/database'
 import { passkey } from '@/db/schema/auth'
 import { eq, and } from 'drizzle-orm'
+import { json } from '@/lib/api/responses'
+
+/**
+ * This endpoint predates the shared success envelope and answers with bare
+ * `{ error }` / `{ passkeys }` objects, which the passkey manager reads.
+ */
+function unauthorized() {
+  return json({ error: 'Unauthorized' }, 401)
+}
+
+function failed(log: string, error: unknown) {
+  console.error(`${log}:`, error)
+
+  return json({ error: 'Internal server error' }, 500)
+}
 
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    // Check if user is authenticated
     const session = locals.session
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    if (!session) return unauthorized()
 
-    // Fetch user's passkeys from database
     const userPasskeys = await db
       .select({
         id: passkey.id,
@@ -27,61 +35,32 @@ export const GET: APIRoute = async ({ locals }) => {
       .where(eq(passkey.userId, session.userId))
       .orderBy(passkey.createdAt)
 
-    return new Response(JSON.stringify({ passkeys: userPasskeys }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ passkeys: userPasskeys }, 200)
   } catch (error) {
-    console.error('Error fetching passkeys:', error)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return failed('Error fetching passkeys', error)
   }
 }
 
 export const DELETE: APIRoute = async ({ locals, request }) => {
   try {
-    // Check if user is authenticated
     const session = locals.session
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    if (!session) return unauthorized()
 
-    // Get passkey ID from request body
     const { id } = await request.json()
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Passkey ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    if (!id) return json({ error: 'Passkey ID is required' }, 400)
 
-    // Delete the passkey (only if it belongs to the current user)
+    // Scoped to the session's user, so one account cannot delete another's key.
     const deletedPasskey = await db
       .delete(passkey)
       .where(and(eq(passkey.id, id), eq(passkey.userId, session.userId)))
       .returning()
 
     if (deletedPasskey.length === 0) {
-      return new Response(JSON.stringify({ error: 'Passkey not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return json({ error: 'Passkey not found' }, 404)
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ success: true }, 200)
   } catch (error) {
-    console.error('Error deleting passkey:', error)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return failed('Error deleting passkey', error)
   }
 }

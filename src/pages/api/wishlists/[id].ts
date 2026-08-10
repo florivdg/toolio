@@ -1,43 +1,26 @@
 import type { APIRoute } from 'astro'
 import { z } from 'zod'
+import { eq } from 'drizzle-orm'
 import { db } from '@/db/database'
 import { wishlists, wishlistItems, wishlistSchema } from '@/db/schema/wishlists'
-import { eq } from 'drizzle-orm'
+import { json, notFound, ok } from '@/lib/api/responses'
+import { handleApiError, requireWishlist } from '@/lib/api/wishlist-guards'
 
 // Schema for path parameters
 const pathParamsSchema = z.object({
   id: z.uuid(),
 })
 
+const NOT_FOUND = 'Wunschliste nicht gefunden'
+
 // GET - Get a specific wishlist with its items
 export const GET: APIRoute = async ({ params }) => {
   try {
-    // Validate path parameters
     const { id } = pathParamsSchema.parse(params)
 
-    // Fetch wishlist from database
-    const wishlist = db
-      .select()
-      .from(wishlists)
-      .where(eq(wishlists.id, id))
-      .get()
+    const wishlist = requireWishlist(id)
+    if (wishlist.response) return wishlist.response
 
-    if (!wishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Fetch wishlist items
     const items = db
       .select()
       .from(wishlistItems)
@@ -45,225 +28,68 @@ export const GET: APIRoute = async ({ params }) => {
       .orderBy(wishlistItems.priority, wishlistItems.createdAt)
       .all()
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: {
-          ...wishlist,
-          items,
-        },
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return ok({ ...wishlist.value, items })
   } catch (error) {
-    console.error('Error fetching wishlist:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Laden der Wunschliste',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error fetching wishlist',
+      message: 'Fehler beim Laden der Wunschliste',
+    })
   }
 }
 
 // PUT - Update a specific wishlist
 export const PUT: APIRoute = async ({ params, request }) => {
   try {
-    // Validate path parameters
     const { id } = pathParamsSchema.parse(params)
+    const validated = wishlistSchema.parse(await request.json())
 
-    // Parse and validate the request body
-    const body = await request.json()
-    const validated = wishlistSchema.parse(body)
+    const existing = requireWishlist(id)
+    if (existing.response) return existing.response
 
-    // Check if wishlist exists
-    const existingWishlist = db
-      .select()
-      .from(wishlists)
-      .where(eq(wishlists.id, id))
-      .get()
-
-    if (!existingWishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Update wishlist in database
     const updatedWishlist = db
       .update(wishlists)
-      .set({
-        ...validated,
-        updatedAt: new Date(),
-      })
+      .set({ ...validated, updatedAt: new Date() })
       .where(eq(wishlists.id, id))
       .returning()
       .get()
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Wunschliste erfolgreich aktualisiert',
-        data: updatedWishlist,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return ok(updatedWishlist, 'Wunschliste erfolgreich aktualisiert')
   } catch (error) {
-    console.error('Error updating wishlist:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Aktualisieren der Wunschliste',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error updating wishlist',
+      message: 'Fehler beim Aktualisieren der Wunschliste',
+    })
   }
 }
 
 // DELETE - Delete a specific wishlist
 export const DELETE: APIRoute = async ({ params }) => {
   try {
-    // Validate path parameters
     const { id } = pathParamsSchema.parse(params)
 
-    // Try to find and delete the wishlist
+    // Deleting straight away avoids a redundant lookup; a missing row simply
+    // returns nothing. Items are removed by the cascading foreign key.
     const deletedWishlist = db
       .delete(wishlists)
       .where(eq(wishlists.id, id))
       .returning()
       .get()
 
-    if (!deletedWishlist) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Wunschliste nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
+    if (!deletedWishlist) return notFound(NOT_FOUND)
 
-    return new Response(
-      JSON.stringify({
+    // This route reports the removed id rather than a data payload.
+    return json(
+      {
         success: true,
         message: 'Wunschliste erfolgreich gelöscht',
         deletedId: id,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      200,
     )
   } catch (error) {
-    console.error('Error deleting wishlist:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Löschen der Wunschliste',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error deleting wishlist',
+      message: 'Fehler beim Löschen der Wunschliste',
+    })
   }
 }

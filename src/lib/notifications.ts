@@ -76,31 +76,3 @@ export async function sendNotification(message: string): Promise<void> {
     throw new Error(`Failed to send notification: ${String(error)}`)
   }
 }
-
-/**
- * Send a notification with additional context for debugging
- *
- * This is a wrapper around sendNotification that adds error logging
- * and is useful for fire-and-forget notifications where you don't want
- * to handle errors in the calling code.
- *
- * @param message The message content to broadcast
- * @param context Optional context for logging (e.g., "iTunes price update")
- * @returns Promise that resolves regardless of success/failure
- */
-export async function sendNotificationSafe(
-  message: string,
-  context?: string,
-): Promise<void> {
-  try {
-    await sendNotification(message)
-    console.log(
-      `Notification sent successfully${context ? ` (${context})` : ''}`,
-    )
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error(
-      `Failed to send notification${context ? ` (${context})` : ''}: ${errorMessage}`,
-    )
-  }
-}

@@ -31,6 +31,14 @@
 import { ref, reactive, watch } from 'vue'
 import { Edit2 } from 'lucide-vue-next'
 import {
+  emptyItemFormData,
+  populateItemFormData,
+  resetItemFormData,
+  submitItemForm,
+  toItemRequestData,
+} from '@/lib/wishlists/item-form'
+import type { WishlistItemFormData } from '@/lib/wishlists/item-form'
+import {
   Dialog,
   DialogHeader,
   DialogTitle,
@@ -39,7 +47,6 @@ import {
   DialogScrollContent,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { toast } from 'vue-sonner'
 import WishlistItemForm from './WishlistItemForm.vue'
 import { useUpdateWishlistItemMutation } from '@/lib/wishlists/queries'
 import type { WishlistItem } from '@/db/schema/wishlists'
@@ -67,15 +74,7 @@ const emit = defineEmits<Emits>()
 // Reactive state
 const isOpen = ref(props.modelValue)
 const isSubmitting = ref(false)
-const formData = reactive({
-  name: '',
-  description: '',
-  price: '',
-  url: '',
-  imageUrl: '',
-  priority: '3',
-  notes: '',
-})
+const formData = reactive(emptyItemFormData())
 
 // Pinia Colada mutation
 const updateItemMutation = useUpdateWishlistItemMutation()
@@ -111,77 +110,50 @@ watch(
   { deep: true, immediate: true },
 )
 
-// Populate form with current item data
-const populateForm = () => {
-  if (!props.item || !props.item.id) return
+/**
+ * Populate form with current item data.
+ *
+ * A function declaration rather than a const: the `immediate` watcher above
+ * calls this during setup, so a const would still be in its temporal dead zone
+ * whenever the modal is created already open.
+ */
+function populateForm() {
+  if (!props.item?.id) return
 
-  formData.name = props.item.name
-  formData.description = props.item.description || ''
-  formData.price = props.item.price?.toString() || ''
-  formData.url = props.item.url
-  formData.imageUrl = props.item.imageUrl || ''
-  formData.priority = (props.item.priority || 3).toString()
-  formData.notes = props.item.notes || ''
+  populateItemFormData(formData, props.item)
 }
 
 // Reset form data
-const resetForm = () => {
-  formData.name = ''
-  formData.description = ''
-  formData.price = ''
-  formData.url = ''
-  formData.imageUrl = ''
-  formData.priority = '3'
-  formData.notes = ''
-}
+const resetForm = () => resetItemFormData(formData)
 
 // Update form data from magic button
-const updateFormData = (newFormData: typeof formData) => {
+const updateFormData = (newFormData: WishlistItemFormData) => {
   Object.assign(formData, newFormData)
 }
 
 // Handle form submission
 const handleSubmit = async () => {
-  if (!props.item || !props.item.id) {
+  const item = props.item
+
+  if (!item?.id) {
     console.error('No valid item to edit')
     return
   }
 
-  try {
-    isSubmitting.value = true
+  const result = await submitItemForm(isSubmitting, {
+    action: () =>
+      updateItemMutation.mutateAsync({
+        wishlistId: item.wishlistId,
+        itemId: item.id,
+        data: toItemRequestData(formData),
+      }),
+    log: 'Error updating wishlist item',
+    fallbackMessage: 'Fehler beim Aktualisieren des Artikels',
+  })
 
-    const requestData = {
-      name: formData.name.trim(),
-      description: formData.description.trim() || undefined,
-      price: formData.price ? parseFloat(formData.price) : undefined,
-      url: formData.url.trim(),
-      imageUrl: formData.imageUrl.trim() || undefined,
-      priority: parseInt(formData.priority),
-      notes: formData.notes.trim() || undefined,
-    }
+  if (!result) return
 
-    const result = await updateItemMutation.mutate({
-      wishlistId: props.item.wishlistId,
-      itemId: props.item.id,
-      data: requestData,
-    })
-
-    // Emit the updated item
-    emit('updated', result)
-
-    // Close dialog
-    isOpen.value = false
-
-    // Toast success message is handled by parent component
-  } catch (err) {
-    console.error('Error updating wishlist item:', err)
-    toast.error(
-      err instanceof Error
-        ? err.message
-        : 'Fehler beim Aktualisieren des Artikels',
-    )
-  } finally {
-    isSubmitting.value = false
-  }
+  emit('updated', result)
+  isOpen.value = false
 }
 </script>

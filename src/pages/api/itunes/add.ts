@@ -1,6 +1,10 @@
 import type { APIRoute } from 'astro'
 import { z } from 'zod'
 import { lookupAndStoreItem } from '@/lib/itunes/storage'
+import { handleApiError, json, notFound } from '@/lib/api/responses'
+
+/** Thrown by the storage layer and answered with a 404 rather than a 500. */
+const NOT_FOUND_IN_STORE = 'Item not found in iTunes store'
 
 // Define a schema for the API that supports both track and collection IDs
 const itunesAddSchema = z.object({
@@ -24,73 +28,26 @@ export const POST: APIRoute = async ({ request }) => {
         country,
       )
 
-      return new Response(
-        JSON.stringify({
+      return json(
+        {
           success: true,
           message: 'Media item saved successfully',
           mediaItemId,
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
         },
+        200,
       )
     } catch (error) {
-      // Handle specific errors from our library functions
-      if (
-        error instanceof Error &&
-        error.message === 'Item not found in iTunes store'
-      ) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Item not found in iTunes store',
-          }),
-          {
-            status: 404,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        )
+      // A missing item is the caller's problem, not a server fault.
+      if (error instanceof Error && error.message === NOT_FOUND_IN_STORE) {
+        return notFound(NOT_FOUND_IN_STORE)
       }
       throw error // Re-throw to be caught by outer catch block
     }
   } catch (error) {
-    console.error('Error adding iTunes media item:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Validation error',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Failed to add media item',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error adding iTunes media item',
+      message: 'Failed to add media item',
+      validationMessage: 'Validation error',
+    })
   }
 }

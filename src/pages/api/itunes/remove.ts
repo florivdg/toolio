@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '@/db/database'
 import { itunesMediaItem } from '@/db/schema/itunes'
 import { eq } from 'drizzle-orm'
+import { handleApiError, json, notFound } from '@/lib/api/responses'
 
 // Define a schema for the remove API
 const itunesRemoveSchema = z.object({
@@ -24,66 +25,21 @@ export const DELETE: APIRoute = async ({ request }) => {
       .all()
 
     if (deletedItems.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Medienelement nicht gefunden',
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
+      return notFound('Medienelement nicht gefunden')
     }
 
-    return new Response(
-      JSON.stringify({
+    return json(
+      {
         success: true,
         message: 'Medienelement erfolgreich entfernt',
         removedItemId: id,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      200,
     )
   } catch (error) {
-    console.error('Error removing iTunes media item:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Ungültige Anfrageparameter',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Fehler beim Entfernen des Medienelements',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error removing iTunes media item',
+      message: 'Fehler beim Entfernen des Medienelements',
+    })
   }
 }
