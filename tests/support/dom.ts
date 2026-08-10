@@ -6,5 +6,7 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator'
  * without a document.
  */
 if (!globalThis.document) {
-  GlobalRegistrator.register()
+  // A concrete URL is required: components build request URLs against
+  // window.location.origin, and happy-dom's default about:blank has none.
+  GlobalRegistrator.register({ url: 'http://localhost/' })
 }

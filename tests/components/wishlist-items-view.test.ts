@@ -26,9 +26,9 @@ mock.module('vue-router', () => ({
   useRoute: () => ({ params: { id: 'list-1' } }),
 }))
 
-mock.module('vue-sonner', () => ({
-  toast: { success: mock(() => {}), error: mock(() => {}) },
-}))
+// Registers the shared vue-sonner stub; see tests/support/toast.ts for why it
+// is shared rather than declared per file.
+import '../support/toast'
 
 mock.module('@/lib/wishlists/queries', () => ({
   useWishlistQuery: () => ({
