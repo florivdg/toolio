@@ -10,6 +10,17 @@
  */
 process.env.DB_FILE_NAME = ':memory:'
 
+/**
+ * Pinned for the same reason: `sendNotification` bails out before doing anything
+ * when this is unset, so whether a notification test passes would otherwise
+ * depend on the developer having a real key in .env — which is exactly how a
+ * green local run turned into a red CI one.
+ *
+ * Every test that reaches this path stubs `fetch`, so the value is never used
+ * against the real endpoint.
+ */
+process.env.NOTI_API_KEY = 'test-key-never-sent'
+
 const { db } = await import('@/db/database')
 const { migrate } = await import('drizzle-orm/bun-sqlite/migrator')
 
