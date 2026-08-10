@@ -33,3 +33,6 @@ sqlite.db
 
 # e2e throwaway database
 /.e2e/
+
+# test coverage reports
+/coverage/
