@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
-import { db } from '@/db/database'
-import { user, account } from '@/db/schema/auth'
+import { createUser } from '@/lib/create-user'
 
 async function main() {
   const [, , email, password, name] = process.argv
@@ -10,40 +9,8 @@ async function main() {
     process.exit(1)
   }
 
-  const userId = crypto.randomUUID()
-  const accountId = crypto.randomUUID()
-  const now = new Date()
-  const displayName = name ?? email.split('@')[0]
-
   try {
-    // Create user
-    await db.insert(user).values({
-      id: userId,
-      email: email,
-      name: displayName,
-      emailVerified: true,
-      image: null,
-      createdAt: now,
-      updatedAt: now,
-    })
-
-    // Create account with hashed password
-    await db.insert(account).values({
-      id: accountId,
-      accountId: accountId,
-      providerId: 'credential',
-      userId: userId,
-      accessToken: null,
-      refreshToken: null,
-      idToken: null,
-      accessTokenExpiresAt: null,
-      refreshTokenExpiresAt: null,
-      scope: null,
-      password: await Bun.password.hash(password),
-      createdAt: now,
-      updatedAt: now,
-    })
-
+    await createUser({ email, password, name })
     console.log('User created successfully:', email)
   } catch (error) {
     console.error('Error creating user:', error)

@@ -38,12 +38,15 @@ function anItem(overrides: Record<string, unknown> = {}) {
   }
 }
 
+/** Wrappers to tear down; see the afterEach below for why. */
+const mounted: { unmount: () => void }[] = []
+
 async function mountView() {
   const { mount } = await import('@vue/test-utils')
   const View = (await import('@/components/wishlists/WishlistItemsView.vue'))
     .default
 
-  return mount(View, {
+  const wrapper = mount(View, {
     global: {
       // The children have their own tests; stubbing them keeps this focused on
       // which branch renders.
@@ -58,6 +61,9 @@ async function mountView() {
       },
     },
   })
+  mounted.push(wrapper)
+
+  return wrapper
 }
 
 describe('WishlistItemsView state machine', () => {
@@ -76,6 +82,9 @@ describe('WishlistItemsView state machine', () => {
   })
 
   afterEach(() => {
+    // The query stubs are shared across test files, so a view left mounted
+    // would keep reacting to another file's state changes.
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
     document.body.innerHTML = ''
   })
 

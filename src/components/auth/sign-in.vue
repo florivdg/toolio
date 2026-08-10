@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, onMounted, ref } from 'vue'
+import { computed, reactive, onMounted, ref } from 'vue'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +25,9 @@ const redirectUrl = ref('/')
 const isLoading = ref(false)
 const isPasskeyLoading = ref(false)
 const error = ref('')
+
+// Either sign-in method locks the whole form while it runs.
+const busy = computed(() => isLoading.value || isPasskeyLoading.value)
 
 // Extract redirect URL from query parameters on component mount
 onMounted(() => {
@@ -137,7 +140,7 @@ async function handlePasskeySignIn() {
         @click="handlePasskeySignIn"
         variant="outline"
         class="w-full"
-        :disabled="isPasskeyLoading || isLoading"
+        :disabled="busy"
       >
         <Loader2 v-if="isPasskeyLoading" class="mr-2 h-4 w-4 animate-spin" />
         <KeyRound v-else class="mr-2 h-4 w-4" />
@@ -167,7 +170,7 @@ async function handlePasskeySignIn() {
             placeholder="m@beispiel.de"
             autocomplete="webauthn"
             required
-            :disabled="isLoading || isPasskeyLoading"
+            :disabled="busy"
           />
         </div>
         <div class="grid gap-2">
@@ -178,14 +181,10 @@ async function handlePasskeySignIn() {
             v-model="form.password"
             autocomplete="current-password webauthn"
             required
-            :disabled="isLoading || isPasskeyLoading"
+            :disabled="busy"
           />
         </div>
-        <Button
-          type="submit"
-          class="w-full"
-          :disabled="isLoading || isPasskeyLoading"
-        >
+        <Button type="submit" class="w-full" :disabled="busy">
           <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
           {{ isLoading ? 'Bitte warten...' : 'Anmelden' }}
         </Button>

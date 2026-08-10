@@ -1,5 +1,5 @@
 import '../support/dom' // DOM is registered in preload; kept for clarity when running this file alone
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { mount } from '@vue/test-utils'
 import { formatPasskeyDate, getDeviceTypeLabel } from '@/lib/passkeys'
 import type { Passkey } from '@/lib/passkeys'
@@ -10,20 +10,11 @@ import type { Passkey } from '@/lib/passkeys'
  * through a stubbed `fetch`.
  */
 
-const addPasskeyResult = {
-  value: null as { error?: { message?: string } } | null,
-}
-const addPasskeyCalls: unknown[] = []
-
-mock.module('@/lib/auth-client', () => ({
-  passkey: {
-    addPasskey: async (args: unknown) => {
-      addPasskeyCalls.push(args)
-
-      return addPasskeyResult.value
-    },
-  },
-}))
+import {
+  authBehaviour,
+  authCalls,
+  resetAuthClient,
+} from '../support/auth-client'
 
 const PasskeyManager = (await import('@/components/auth/passkey-manager.vue'))
   .default
@@ -74,8 +65,7 @@ beforeEach(() => {
   originalConfirm = globalThis.confirm
   globalThis.confirm = () => true
   requests = []
-  addPasskeyCalls.length = 0
-  addPasskeyResult.value = null
+  resetAuthClient()
 })
 
 afterEach(() => {
@@ -168,7 +158,7 @@ describe('passkey manager', () => {
     await w.findAll('button')[0]!.trigger('click')
     await settle()
 
-    expect(addPasskeyCalls).toHaveLength(0)
+    expect(authCalls.addPasskey).toHaveLength(0)
   })
 
   test('registers a named passkey and reloads the list', async () => {
@@ -178,7 +168,7 @@ describe('passkey manager', () => {
     await w.findAll('button')[0]!.trigger('click')
     await settle()
 
-    expect(addPasskeyCalls[0]).toEqual({ name: 'Mein MacBook' })
+    expect(authCalls.addPasskey[0]).toEqual({ name: 'Mein MacBook' })
     // Two GETs: the initial load and the reload after registering.
     expect(requests.filter((r) => r.method === 'GET')).toHaveLength(2)
     expect((w.find('input').element as HTMLInputElement).value).toBe('')
@@ -187,7 +177,7 @@ describe('passkey manager', () => {
   /** The client reports a rejected registration in its result, not by throwing. */
   test('surfaces a rejected registration', async () => {
     const w = await mountManager([])
-    addPasskeyResult.value = { error: { message: 'Abgebrochen' } }
+    authBehaviour.addPasskeyResult = { error: { message: 'Abgebrochen' } }
 
     await w.find('input').setValue('Mein MacBook')
     await w.findAll('button')[0]!.trigger('click')
@@ -202,7 +192,7 @@ describe('passkey manager', () => {
 
   test('falls back to a generic message for an error with no message', async () => {
     const w = await mountManager([])
-    addPasskeyResult.value = { error: {} }
+    authBehaviour.addPasskeyResult = { error: {} }
 
     await w.find('input').setValue('Mein MacBook')
     await w.findAll('button')[0]!.trigger('click')

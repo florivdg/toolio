@@ -40,10 +40,14 @@ function page(count: number, total = count, startAt = 0) {
  * The view fills its list in `onMounted`, so the DOM only reflects the data
  * after a tick. Every mount here awaits that.
  */
+/** Wrappers to tear down; see the afterEach below for why. */
+const mounted: { unmount: () => void }[] = []
+
 async function mountView() {
   const wrapper = mount(WishlistsView, {
     global: { stubs: { CreateWishlistModal: true } },
   })
+  mounted.push(wrapper)
   await nextTick()
 
   return wrapper
@@ -60,6 +64,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  // The query stubs are shared across test files, so a view left mounted would
+  // keep reacting to another file's state changes and re-render into a torn
+  // down DOM.
+  mounted.splice(0).forEach((wrapper) => wrapper.unmount())
   globalThis.fetch = originalFetch
   document.body.innerHTML = ''
 })

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { FileText, List } from 'lucide-vue-next'
+import WishlistNavLink from '@/components/wishlists/WishlistNavLink.vue'
 import { useWishlistsQuery } from '@/lib/wishlists/queries'
 
 // Use Pinia Colada query for sidebar wishlists
@@ -62,38 +63,13 @@ const loading = computed(() => isLoading.value)
               Meine Listen
             </span>
           </div>
-          <router-link
+          <WishlistNavLink
             v-for="wishlist in wishlists"
             :key="wishlist.id"
-            :to="`/tools/wishlists/${wishlist.id}`"
-            custom
-            v-slot="{ isActive, href, navigate }"
-          >
-            <Button
-              asChild
-              :variant="isActive ? 'default' : 'ghost'"
-              size="sm"
-              @click="navigate"
-              class="w-full min-w-0 justify-start"
-            >
-              <a
-                :href="href"
-                class="flex min-w-0 items-center gap-2"
-                :title="wishlist.name"
-              >
-                <FileText class="h-3 w-3 flex-shrink-0" />
-                <span class="min-w-0 flex-1 truncate text-left">{{
-                  wishlist.name
-                }}</span>
-                <span
-                  v-if="wishlist.itemCount !== undefined"
-                  class="text-muted-foreground ml-auto flex-shrink-0 text-xs"
-                >
-                  {{ wishlist.itemCount }}
-                </span>
-              </a>
-            </Button>
-          </router-link>
+            :id="wishlist.id"
+            :name="wishlist.name"
+            :item-count="wishlist.itemCount"
+          />
         </div>
 
         <!-- Empty State -->
