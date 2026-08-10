@@ -4,14 +4,13 @@
  * Run as a child process before each test, so a test that creates or deletes
  * data cannot change what the next one sees. Auth tables are left alone: the
  * signed-in session has to survive the reset.
+ *
+ * The static import below is also what makes this file a module, which
+ * top-level `await` requires.
  */
-const target = process.env.DB_FILE_NAME ?? ''
+import { E2E_DB_FILE } from './db-path'
 
-if (!target.includes('e2e')) {
-  throw new Error(
-    `Refusing to reset a database that is not the e2e one: ${target}`,
-  )
-}
+process.env.DB_FILE_NAME = E2E_DB_FILE
 
 const { db } = await import('@/db/database')
 const { wishlists, wishlistItems } = await import('@/db/schema/wishlists')
