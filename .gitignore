@@ -30,3 +30,6 @@ sqlite.db
 # Playwright
 /test-results/
 /playwright-report/
+
+# e2e throwaway database
+/.e2e/

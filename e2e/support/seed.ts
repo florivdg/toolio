@@ -2,16 +2,18 @@
  * Builds an isolated database for the e2e run: migrations, a test user and the
  * fixtures.
  *
- * DB_FILE_NAME is set by the caller to a throwaway file; the guard below makes
- * sure we never migrate or seed the developer's real sqlite.db. See README.md.
+ * Runs before Playwright, because Playwright starts the web server before any
+ * of its own hooks and that server opens the database on boot. E2E_DB_FILE
+ * carries the guard that stops this ever pointing at the real sqlite.db.
  */
-const target = process.env.DB_FILE_NAME ?? ''
+import { mkdirSync, rmSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { E2E_DB_FILE } from './db-path'
 
-if (!target.includes('e2e')) {
-  throw new Error(
-    `Refusing to seed a database that is not the e2e one: ${target}`,
-  )
-}
+// Recreated from scratch so a run never inherits what the last one left.
+rmSync(E2E_DB_FILE, { force: true })
+mkdirSync(dirname(E2E_DB_FILE), { recursive: true })
+process.env.DB_FILE_NAME = E2E_DB_FILE
 
 const { db } = await import('@/db/database')
 const { migrate } = await import('drizzle-orm/bun-sqlite/migrator')
@@ -103,4 +105,4 @@ db.insert(itunesPriceHistory)
   })
   .run()
 
-console.log('seeded', target)
+console.log('seeded', E2E_DB_FILE)

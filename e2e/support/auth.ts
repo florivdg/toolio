@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { expect, type Page } from '@playwright/test'
+import { E2E_DB_FILE } from './db-path'
 
 /**
  * Restores the seeded wishlist and iTunes rows.
@@ -10,7 +11,7 @@ import { expect, type Page } from '@playwright/test'
 export function resetFixtures() {
   execFileSync('bun', ['run', 'e2e/support/fixtures.ts'], {
     stdio: 'pipe',
-    env: process.env,
+    env: { ...process.env, DB_FILE_NAME: E2E_DB_FILE },
   })
 }
 
