@@ -142,7 +142,7 @@ const handleSubmit = async () => {
 
   const result = await submitItemForm(isSubmitting, {
     action: () =>
-      updateItemMutation.mutate({
+      updateItemMutation.mutateAsync({
         wishlistId: item.wishlistId,
         itemId: item.id,
         data: toItemRequestData(formData),

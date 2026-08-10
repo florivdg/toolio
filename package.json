@@ -17,7 +17,8 @@
     "fallow:dead-code": "fallow dead-code",
     "fallow:dupes": "fallow dupes",
     "fallow:health": "fallow health",
-    "fallow:fix": "fallow fix --dry-run"
+    "fallow:fix": "fallow fix --dry-run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.11.2",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/typography": "^0.5.20",
     "@types/bun": "^1.3.14",
     "@vue/test-utils": "^2.4.11",

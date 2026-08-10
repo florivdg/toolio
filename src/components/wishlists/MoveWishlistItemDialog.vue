@@ -130,7 +130,7 @@ const moveItem = async () => {
   try {
     isMoving.value = true
 
-    const movedItem = await moveItemMutation.mutate({
+    const movedItem = await moveItemMutation.mutateAsync({
       fromWishlistId: props.item.wishlistId,
       toWishlistId: selectedWishlistId.value,
       itemId: props.item.id,

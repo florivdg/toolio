@@ -27,3 +27,6 @@ pnpm-debug.log*
 .claude/settings.local.json
 
 sqlite.db
+# Playwright
+/test-results/
+/playwright-report/

@@ -49,7 +49,13 @@ export function rejectNext(name: MutationName, error: unknown) {
   pendingRejections.set(name, error)
 }
 
-/** Mutations are exposed under both names the components use. */
+/**
+ * Mutations, mirroring Pinia Colada's two entry points.
+ *
+ * `mutate` resolves to undefined and `mutateAsync` to the data — the same split
+ * the real library has. Returning data from both hid a bug where a component
+ * awaited `mutate` and treated the undefined result as a failure.
+ */
 function mutationStub(name: MutationName) {
   const run = async (variables?: unknown) => {
     mutationCalls[name].push(variables)
@@ -60,11 +66,15 @@ function mutationStub(name: MutationName) {
       throw error
     }
 
-    // Components read the result, so hand back something wishlist-shaped.
     return { id: 'w1', name: 'Ergebnis' }
   }
 
-  return () => ({ mutate: run, mutateAsync: run })
+  return () => ({
+    mutate: async (variables?: unknown) => {
+      await run(variables)
+    },
+    mutateAsync: run,
+  })
 }
 
 mock.module('@/lib/wishlists/queries', () => ({

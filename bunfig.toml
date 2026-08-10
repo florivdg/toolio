@@ -1,4 +1,8 @@
 [test]
+# Scoped to tests/: the Playwright specs under e2e/ are also *.spec.ts and would
+# otherwise be collected here, where their fixtures do not exist.
+root = "./tests"
+
 # Order matters: the DOM must exist before @vue/runtime-dom is first imported,
 # since it captures `document` at module scope.
 preload = [

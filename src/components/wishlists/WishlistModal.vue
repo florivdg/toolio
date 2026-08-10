@@ -236,8 +236,8 @@ const handleSubmit = async () => {
   const result = await submitItemForm<Wishlist>(isSubmitting, {
     action: () =>
       id
-        ? updateWishlistMutation.mutate({ id, data: requestData })
-        : createWishlistMutation.mutate(requestData),
+        ? updateWishlistMutation.mutateAsync({ id, data: requestData })
+        : createWishlistMutation.mutateAsync(requestData),
     log: logLabel.value,
     fallbackMessage: errorMessage.value,
   })

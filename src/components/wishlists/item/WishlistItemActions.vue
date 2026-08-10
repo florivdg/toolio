@@ -71,7 +71,14 @@ const emit = defineEmits<{
     <!-- Secondary Actions Dropdown -->
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="sm" variant="ghost" class="h-8 w-8 p-0">
+        <!-- Icon-only, so it needs a name of its own: without one every row
+             offers a screen reader an unlabelled "button". -->
+        <Button
+          size="sm"
+          variant="ghost"
+          class="h-8 w-8 p-0"
+          :aria-label="`Aktionen für ${item.name}`"
+        >
           <MoreHorizontal class="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

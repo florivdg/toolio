@@ -104,7 +104,7 @@ const updateFormData = (newFormData: WishlistItemFormData) => {
 const handleSubmit = async () => {
   const result = await submitItemForm(isSubmitting, {
     action: () =>
-      createItemMutation.mutate({
+      createItemMutation.mutateAsync({
         wishlistId: props.wishlistId,
         data: toItemRequestData(formData),
       }),
