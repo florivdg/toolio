@@ -10,9 +10,10 @@ export function callRoute(
     params?: Record<string, string>
     body?: unknown
     url?: string
+    locals?: Record<string, unknown>
   } = {},
 ): Promise<Response> {
-  const { params = {}, body, url = 'http://localhost/' } = options
+  const { params = {}, body, url = 'http://localhost/', locals = {} } = options
 
   const request = new Request(url, {
     method: 'POST',
@@ -27,6 +28,8 @@ export function callRoute(
       // Astro exposes the parsed URL separately; list routes read query
       // parameters from it rather than from the request.
       url: new URL(url),
+      // The middleware puts the session here; routes behind auth read it.
+      locals,
     } as unknown as Parameters<APIRoute>[0]),
   ) as Promise<Response>
 }

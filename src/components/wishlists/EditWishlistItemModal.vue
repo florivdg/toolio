@@ -110,8 +110,14 @@ watch(
   { deep: true, immediate: true },
 )
 
-// Populate form with current item data
-const populateForm = () => {
+/**
+ * Populate form with current item data.
+ *
+ * A function declaration rather than a const: the `immediate` watcher above
+ * calls this during setup, so a const would still be in its temporal dead zone
+ * whenever the modal is created already open.
+ */
+function populateForm() {
   if (!props.item?.id) return
 
   populateItemFormData(formData, props.item)

@@ -75,6 +75,62 @@ export function toItemRequestData(formData: WishlistItemFormData) {
   }
 }
 
+/** What the URL extractor endpoint returns for a product page. */
+export interface ExtractedDetails {
+  name?: string
+  description?: string
+  price?: number
+  imageUrl?: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
+/** Which extracted fields live behind the "advanced" disclosure. */
+const OPTIONAL_FIELDS = ['description', 'price', 'imageUrl'] as const
+
+/** How confident the extractor was, phrased for the user. */
+const CONFIDENCE_MESSAGES: Record<ExtractedDetails['confidence'], string> = {
+  high: 'Produktdetails erfolgreich extrahiert! 🎉',
+  medium: 'Einige Produktdetails gefunden. Bitte überprüfen Sie die Angaben.',
+  low: 'Wenige Details gefunden. Bitte ergänzen Sie die fehlenden Informationen.',
+}
+
+export function extractionMessage(
+  confidence: ExtractedDetails['confidence'],
+): string {
+  return CONFIDENCE_MESSAGES[confidence]
+}
+
+/** Whether anything was found that the advanced section should be opened for. */
+export function hasOptionalDetails(details: ExtractedDetails): boolean {
+  return OPTIONAL_FIELDS.some((field) => Boolean(details[field]))
+}
+
+/**
+ * Merge extracted product details into the form.
+ *
+ * Only blank fields are filled: whatever the user already typed wins, since
+ * extraction is a convenience and not a correction.
+ */
+export function mergeExtractedDetails(
+  formData: WishlistItemFormData,
+  details: ExtractedDetails,
+): WishlistItemFormData {
+  const merged = { ...formData }
+
+  const candidates: [keyof WishlistItemFormData, string | undefined][] = [
+    ['name', details.name],
+    ['description', details.description],
+    ['price', details.price?.toString()],
+    ['imageUrl', details.imageUrl],
+  ]
+
+  for (const [field, value] of candidates) {
+    if (value && !merged[field].trim()) merged[field] = value
+  }
+
+  return merged
+}
+
 /**
  * Run a form submission with the busy flag and error toast both modals need.
  *

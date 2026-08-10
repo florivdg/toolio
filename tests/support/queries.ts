@@ -23,35 +23,62 @@ export const wishlistsQuery = queryStub()
 export const wishlistQuery = queryStub()
 export const itemsQuery = queryStub()
 
-/** Every mutation the components call, recording what it was asked to do. */
-const mutations = {
-  createWishlist: mock(async () => ({})),
-  updateWishlist: mock(async () => ({})),
-  deleteWishlist: mock(async () => ({})),
-  createItem: mock(async () => ({})),
-  updateItem: mock(async () => ({})),
-  deleteItem: mock(async () => ({})),
-  updateItemStatus: mock(async () => ({})),
-  moveItem: mock(async () => ({})),
+const MUTATION_NAMES = [
+  'createWishlist',
+  'updateWishlist',
+  'deleteWishlist',
+  'createItem',
+  'updateItem',
+  'deleteItem',
+  'updateItemStatus',
+  'moveItem',
+] as const
+
+type MutationName = (typeof MUTATION_NAMES)[number]
+
+/** What each mutation was asked to do, in order. */
+export const mutationCalls = Object.fromEntries(
+  MUTATION_NAMES.map((name) => [name, [] as unknown[]]),
+) as Record<MutationName, unknown[]>
+
+/** Errors queued by `rejectNext`, one per mutation. */
+const pendingRejections = new Map<MutationName, unknown>()
+
+/** Make the next call to a mutation reject, then go back to succeeding. */
+export function rejectNext(name: MutationName, error: unknown) {
+  pendingRejections.set(name, error)
 }
 
 /** Mutations are exposed under both names the components use. */
-function mutationStub(fn: (...args: any[]) => Promise<unknown>) {
-  return () => ({ mutate: fn, mutateAsync: fn })
+function mutationStub(name: MutationName) {
+  const run = async (variables?: unknown) => {
+    mutationCalls[name].push(variables)
+
+    if (pendingRejections.has(name)) {
+      const error = pendingRejections.get(name)
+      pendingRejections.delete(name)
+      throw error
+    }
+
+    // Components read the result, so hand back something wishlist-shaped.
+    return { id: 'w1', name: 'Ergebnis' }
+  }
+
+  return () => ({ mutate: run, mutateAsync: run })
 }
 
 mock.module('@/lib/wishlists/queries', () => ({
   useWishlistsQuery: () => wishlistsQuery,
   useWishlistQuery: () => wishlistQuery,
   useWishlistItemsQuery: () => itemsQuery,
-  useCreateWishlistMutation: mutationStub(mutations.createWishlist),
-  useUpdateWishlistMutation: mutationStub(mutations.updateWishlist),
-  useDeleteWishlistMutation: mutationStub(mutations.deleteWishlist),
-  useCreateWishlistItemMutation: mutationStub(mutations.createItem),
-  useUpdateWishlistItemMutation: mutationStub(mutations.updateItem),
-  useDeleteWishlistItemMutation: mutationStub(mutations.deleteItem),
-  useUpdateWishlistItemStatusMutation: mutationStub(mutations.updateItemStatus),
-  useMoveWishlistItemMutation: mutationStub(mutations.moveItem),
+  useCreateWishlistMutation: mutationStub('createWishlist'),
+  useUpdateWishlistMutation: mutationStub('updateWishlist'),
+  useDeleteWishlistMutation: mutationStub('deleteWishlist'),
+  useCreateWishlistItemMutation: mutationStub('createItem'),
+  useUpdateWishlistItemMutation: mutationStub('updateItem'),
+  useDeleteWishlistItemMutation: mutationStub('deleteItem'),
+  useUpdateWishlistItemStatusMutation: mutationStub('updateItemStatus'),
+  useMoveWishlistItemMutation: mutationStub('moveItem'),
 }))
 
 /** Puts every query back to "loaded, empty" and forgets recorded calls. */
@@ -63,5 +90,6 @@ export function resetQueries() {
     query.refetch.mockClear()
   }
 
-  for (const mutation of Object.values(mutations)) mutation.mockClear()
+  for (const name of MUTATION_NAMES) mutationCalls[name].length = 0
+  pendingRejections.clear()
 }

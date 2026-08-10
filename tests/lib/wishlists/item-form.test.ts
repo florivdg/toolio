@@ -7,6 +7,9 @@ mock.module('vue-sonner', () => ({ toast: { error: toastError } }))
 
 const {
   emptyItemFormData,
+  extractionMessage,
+  hasOptionalDetails,
+  mergeExtractedDetails,
   populateItemFormData,
   resetItemFormData,
   submitItemForm,
@@ -233,5 +236,107 @@ describe('submitItemForm', () => {
     })
 
     expect(toastError).toHaveBeenCalledWith('Fehler beim Speichern')
+  })
+})
+
+/**
+ * The magic-extract button fills the form from a scraped product page. What the
+ * user already typed must survive it, since extraction is a convenience rather
+ * than a correction.
+ */
+describe('mergeExtractedDetails', () => {
+  const extracted = {
+    name: 'Kaffeemühle Pro',
+    description: 'Eine sehr gute Kaffeemühle.',
+    price: 89.9,
+    imageUrl: 'https://cdn.example/a.jpg',
+    confidence: 'high',
+  } as const
+
+  test('fills every blank field', () => {
+    const merged = mergeExtractedDetails(emptyItemFormData(), extracted)
+
+    expect(merged.name).toBe('Kaffeemühle Pro')
+    expect(merged.description).toBe('Eine sehr gute Kaffeemühle.')
+    expect(merged.price).toBe('89.9')
+    expect(merged.imageUrl).toBe('https://cdn.example/a.jpg')
+  })
+
+  test('never overwrites what the user typed', () => {
+    const formData = emptyItemFormData()
+    Object.assign(formData, { name: 'Meine Mühle', price: '50' })
+
+    const merged = mergeExtractedDetails(formData, extracted)
+
+    expect(merged.name).toBe('Meine Mühle')
+    expect(merged.price).toBe('50')
+    // The fields the user left blank are still filled.
+    expect(merged.imageUrl).toBe('https://cdn.example/a.jpg')
+  })
+
+  test('treats a whitespace-only field as blank', () => {
+    const formData = emptyItemFormData()
+    formData.name = '   '
+
+    expect(mergeExtractedDetails(formData, extracted).name).toBe(
+      'Kaffeemühle Pro',
+    )
+  })
+
+  test('leaves fields the extractor found nothing for', () => {
+    const merged = mergeExtractedDetails(emptyItemFormData(), {
+      name: 'Nur ein Name',
+      confidence: 'low',
+    })
+
+    expect(merged.name).toBe('Nur ein Name')
+    expect(merged.description).toBe('')
+    expect(merged.price).toBe('')
+  })
+
+  test('does not mutate the form it was given', () => {
+    const formData = emptyItemFormData()
+    mergeExtractedDetails(formData, extracted)
+
+    expect(formData.name).toBe('')
+  })
+
+  test('leaves the untouched fields alone', () => {
+    const formData = emptyItemFormData()
+    Object.assign(formData, { url: 'https://shop.example/p/1', notes: 'Notiz' })
+
+    const merged = mergeExtractedDetails(formData, extracted)
+
+    expect(merged.url).toBe('https://shop.example/p/1')
+    expect(merged.notes).toBe('Notiz')
+    expect(merged.priority).toBe('3')
+  })
+})
+
+describe('extractionMessage', () => {
+  test('phrases each confidence level differently', () => {
+    expect(extractionMessage('high')).toContain('erfolgreich')
+    expect(extractionMessage('medium')).toContain('überprüfen')
+    expect(extractionMessage('low')).toContain('ergänzen')
+  })
+})
+
+describe('hasOptionalDetails', () => {
+  test('is true when anything behind the advanced disclosure was found', () => {
+    expect(hasOptionalDetails({ price: 9.99, confidence: 'high' })).toBe(true)
+    expect(hasOptionalDetails({ description: 'x', confidence: 'low' })).toBe(
+      true,
+    )
+    expect(hasOptionalDetails({ imageUrl: 'x', confidence: 'low' })).toBe(true)
+  })
+
+  test('is false for a name alone, which is not an advanced field', () => {
+    expect(
+      hasOptionalDetails({ name: 'Nur ein Name', confidence: 'low' }),
+    ).toBe(false)
+  })
+
+  test('is false when nothing was found', () => {
+    expect(hasOptionalDetails({ confidence: 'low' })).toBe(false)
   })
 })

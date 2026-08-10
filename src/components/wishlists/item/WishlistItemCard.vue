@@ -38,7 +38,10 @@ const CELL =
         >
           {{ item.description }}
         </div>
-        <div v-if="item.notes" class="text-muted-foreground mt-1 text-xs italic">
+        <div
+          v-if="item.notes"
+          class="text-muted-foreground mt-1 text-xs italic"
+        >
           Notiz: {{ item.notes }}
         </div>
       </div>

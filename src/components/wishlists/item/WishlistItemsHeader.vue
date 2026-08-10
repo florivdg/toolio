@@ -74,7 +74,11 @@ defineEmits<{
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button @click="$emit('back')" variant="outline" class="w-full @md:w-auto">
+        <Button
+          @click="$emit('back')"
+          variant="outline"
+          class="w-full @md:w-auto"
+        >
           <span class="@max-xl:hidden">Zurück zur Übersicht</span>
           <span class="@xl:hidden">Zurück</span>
         </Button>

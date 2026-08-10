@@ -199,24 +199,15 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 
-// Types
-interface FormData {
-  name: string
-  description: string
-  price: string
-  url: string
-  imageUrl: string
-  priority: string
-  notes: string
-}
-
-interface ExtractedData {
-  name?: string
-  description?: string
-  price?: number
-  imageUrl?: string
-  confidence: 'high' | 'medium' | 'low'
-}
+import {
+  extractionMessage,
+  hasOptionalDetails,
+  mergeExtractedDetails,
+} from '@/lib/wishlists/item-form'
+import type {
+  ExtractedDetails,
+  WishlistItemFormData as FormData,
+} from '@/lib/wishlists/item-form'
 
 // Props
 interface Props {
@@ -265,45 +256,16 @@ async function extractUrlDetails() {
       throw new Error(result.error || 'Fehler beim Extrahieren der URL-Details')
     }
 
-    const extractedData: ExtractedData = result.data
+    const extractedData: ExtractedDetails = result.data
 
-    // Update form data with extracted information
-    const updatedFormData = { ...props.formData }
-
-    if (extractedData.name && !updatedFormData.name.trim()) {
-      updatedFormData.name = extractedData.name
-    }
-
-    if (extractedData.description && !updatedFormData.description.trim()) {
-      updatedFormData.description = extractedData.description
-    }
-
-    if (extractedData.price && !updatedFormData.price.trim()) {
-      updatedFormData.price = extractedData.price.toString()
-    }
-
-    if (extractedData.imageUrl && !updatedFormData.imageUrl.trim()) {
-      updatedFormData.imageUrl = extractedData.imageUrl
-    }
-
-    emit('update:formData', updatedFormData)
-
-    // Show success message based on confidence
-    const confidenceMessages = {
-      high: 'Produktdetails erfolgreich extrahiert! 🎉',
-      medium:
-        'Einige Produktdetails gefunden. Bitte überprüfen Sie die Angaben.',
-      low: 'Wenige Details gefunden. Bitte ergänzen Sie die fehlenden Informationen.',
-    }
-
-    toast.success(confidenceMessages[extractedData.confidence])
+    emit(
+      'update:formData',
+      mergeExtractedDetails(props.formData, extractedData),
+    )
+    toast.success(extractionMessage(extractedData.confidence))
 
     // Automatically expand advanced fields if we extracted optional data
-    if (
-      extractedData.description ||
-      extractedData.price ||
-      extractedData.imageUrl
-    ) {
+    if (hasOptionalDetails(extractedData)) {
       showAdvancedFields.value = true
     }
   } catch (error) {

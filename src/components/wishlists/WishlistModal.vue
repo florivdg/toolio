@@ -75,6 +75,7 @@ import {
   useCreateWishlistMutation,
   useUpdateWishlistMutation,
 } from '@/lib/wishlists/queries'
+import { submitItemForm } from '@/lib/wishlists/item-form'
 import type { Wishlist } from '@/db/schema/wishlists'
 
 // Props
@@ -143,6 +144,15 @@ const errorMessage = computed(() =>
     : 'Fehler beim Erstellen der Wishlist',
 )
 
+const logLabel = computed(() =>
+  isEditMode.value ? 'Error updating wishlist' : 'Error creating wishlist',
+)
+
+/** The wishlist being edited, or undefined when creating one. */
+const editingId = computed(() =>
+  isEditMode.value ? props.wishlist?.id : undefined,
+)
+
 // Reactive state
 const isOpen = ref(props.modelValue)
 const isSubmitting = ref(false)
@@ -185,8 +195,14 @@ watch(
   { deep: true, immediate: true },
 )
 
-// Populate form with current wishlist data (edit mode only)
-const populateForm = () => {
+/**
+ * Populate form with current wishlist data (edit mode only).
+ *
+ * A function declaration rather than a const: the `immediate` watcher above
+ * calls this during setup, so a const would still be in its temporal dead zone
+ * whenever the modal is created already open.
+ */
+function populateForm() {
   if (!isEditMode.value || !props.wishlist?.id) return
 
   formData.name = props.wishlist.name
@@ -206,48 +222,34 @@ const handleSubmit = async () => {
     return
   }
 
-  if (isEditMode.value && (!props.wishlist || !props.wishlist.id)) {
+  if (isEditMode.value && !editingId.value) {
     console.error('No valid wishlist to edit')
     return
   }
 
-  try {
-    isSubmitting.value = true
-
-    const requestData = {
-      name: formData.name.trim(),
-      description: formData.description.trim() || undefined,
-    }
-
-    let result: Wishlist
-
-    if (isEditMode.value) {
-      result = await updateWishlistMutation.mutate({
-        id: props.wishlist!.id,
-        data: requestData,
-      })
-    } else {
-      result = await createWishlistMutation.mutate(requestData)
-    }
-
-    // Emit the success event with the wishlist data
-    emit('success', result)
-
-    // Reset form and close dialog
-    if (!isEditMode.value) {
-      resetForm()
-    }
-    isOpen.value = false
-
-    toast.success(successMessage.value)
-  } catch (err) {
-    console.error(
-      `Error ${isEditMode.value ? 'updating' : 'creating'} wishlist:`,
-      err,
-    )
-    toast.error(err instanceof Error ? err.message : errorMessage.value)
-  } finally {
-    isSubmitting.value = false
+  const requestData = {
+    name: formData.name.trim(),
+    description: formData.description.trim() || undefined,
   }
+
+  const id = editingId.value
+  const result = await submitItemForm<Wishlist>(isSubmitting, {
+    action: () =>
+      id
+        ? updateWishlistMutation.mutate({ id, data: requestData })
+        : createWishlistMutation.mutate(requestData),
+    log: logLabel.value,
+    fallbackMessage: errorMessage.value,
+  })
+
+  if (!result) return
+
+  emit('success', result)
+
+  // The edit form keeps showing the wishlist it just saved.
+  if (!isEditMode.value) resetForm()
+  isOpen.value = false
+
+  toast.success(successMessage.value)
 }
 </script>
