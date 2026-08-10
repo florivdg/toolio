@@ -24,6 +24,15 @@ export interface WishlistItemFormData {
 /** Priority defaults to the middle of the 1-5 range. */
 const DEFAULT_PRIORITY = '3'
 
+/** The 1-5 priority scale as the picker offers it, lowest first. */
+export const PRIORITY_OPTIONS = [
+  { value: '1', label: 'Niedrig' },
+  { value: '2', label: 'Mittel-niedrig' },
+  { value: '3', label: 'Mittel' },
+  { value: '4', label: 'Hoch' },
+  { value: '5', label: 'Sehr hoch' },
+] as const
+
 export function emptyItemFormData(): WishlistItemFormData {
   return {
     name: '',

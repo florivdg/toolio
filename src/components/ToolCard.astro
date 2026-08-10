@@ -1,0 +1,39 @@
+---
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ChevronRight } from 'lucide-vue-next'
+import type { CollectionEntry } from 'astro:content'
+
+interface Props {
+  doc: CollectionEntry<'docs'>
+}
+
+const { doc } = Astro.props
+const tags = doc.data.tags ?? []
+---
+
+<a href={`/tools/${doc.id}`} class="block">
+  <Card class="h-full cursor-pointer transition-shadow hover:shadow-lg">
+    <CardHeader>
+      <CardTitle>{doc.data.title}</CardTitle>
+      <CardDescription>{doc.data.description}</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div class="flex flex-wrap gap-2">
+        {tags.map((tag) => <Badge variant="outline">{tag}</Badge>)}
+      </div>
+      <div class="mt-4">
+        <span class="text-primary inline-flex items-center text-sm font-medium">
+          Tool öffnen
+          <ChevronRight class="ml-1 h-4 w-4" />
+        </span>
+      </div>
+    </CardContent>
+  </Card>
+</a>

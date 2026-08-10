@@ -93,7 +93,7 @@
     <ConfirmDeleteDialog
       v-model:open="deleteDialog.open"
       title="Artikel löschen"
-      :description="deleteItemDescription"
+      :description="deleteItemText"
       :loading="deleteDialog.loading"
       @confirm="deleteItem"
     />
@@ -101,7 +101,7 @@
     <ConfirmDeleteDialog
       v-model:open="deleteWishlistDialog.open"
       title="Wishlist löschen"
-      :description="deleteWishlistDescription"
+      :description="deleteWishlistText"
       :loading="deleteWishlistDialog.loading"
       @confirm="deleteWishlist"
     />
@@ -128,6 +128,14 @@ import {
   useUpdateWishlistItemStatusMutation,
 } from '@/lib/wishlists/queries'
 import type { WishlistItem } from '@/db/schema/wishlists'
+import {
+  deleteItemDescription,
+  deleteWishlistDescription,
+  EMPTY_WISHLIST_ITEM,
+  filterItems,
+  sumActivePrices,
+  sumPrices,
+} from '@/lib/wishlists/item-list'
 import { FileText } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -205,74 +213,23 @@ const currentPagination = computed(
     },
 )
 
-// Create a default item for when no item is being edited
-const defaultItem: WishlistItem = {
-  id: '',
-  wishlistId: '',
-  name: '',
-  description: '',
-  price: 0,
-  url: '',
-  imageUrl: '',
-  isActive: true,
-  isPurchased: false,
-  priority: 3,
-  notes: '',
-  createdAt: '',
-  updatedAt: '',
-}
-
 // Computed
-const filteredItems = computed(() => {
-  let filtered = items.value
-
-  switch (filter.value) {
-    case 'active':
-      filtered = filtered.filter((item) => item.isActive && !item.isPurchased)
-      break
-    case 'purchased':
-      filtered = filtered.filter((item) => item.isPurchased)
-      break
-    case 'unpurchased':
-      filtered = filtered.filter((item) => !item.isPurchased)
-      break
-    default:
-      // 'all' - no filtering
-      break
-  }
-
-  return filtered
-})
-
-// Price totals
-const totalSum = computed(() => {
-  return items.value.reduce((sum, item) => {
-    return sum + (item.price || 0)
-  }, 0)
-})
-
-const activeSum = computed(() => {
-  return items.value
-    .filter((item) => item.isActive && !item.isPurchased)
-    .reduce((sum, item) => {
-      return sum + (item.price || 0)
-    }, 0)
-})
+const filteredItems = computed(() => filterItems(items.value, filter.value))
+const totalSum = computed(() => sumPrices(items.value))
+const activeSum = computed(() => sumActivePrices(items.value))
 
 // Presentation strings, kept out of the template so it stays free of optional
 // chaining and long interpolations.
 const wishlistName = computed(() => wishlistData.value?.name)
 const wishlistDescription = computed(() => wishlistData.value?.description)
-const itemBeingEdited = computed(() => editingItem.value || defaultItem)
+const itemBeingEdited = computed(() => editingItem.value || EMPTY_WISHLIST_ITEM)
 
-const deleteItemDescription = computed(
-  () =>
-    `Sind Sie sicher, dass Sie den Artikel "${deleteDialog.value.item?.name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`,
+const deleteItemText = computed(() =>
+  deleteItemDescription(deleteDialog.value.item?.name),
 )
 
-const deleteWishlistDescription = computed(
-  () =>
-    `Sind Sie sicher, dass Sie die Wishlist "${wishlistData.value?.name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden und alle Artikel in dieser Wishlist werden ebenfalls gelöscht.`,
+const deleteWishlistText = computed(() =>
+  deleteWishlistDescription(wishlistData.value?.name),
 )
 
 // Methods using mutations

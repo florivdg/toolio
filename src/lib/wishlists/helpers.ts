@@ -22,19 +22,24 @@ export function formatPrice(price: number, currency = 'EUR'): string {
   }).format(price)
 }
 
-/**
- * Check if URL is from a known e-commerce site and return site-specific patterns
- */
-export function getEcommerceSiteInfo(url: string): {
+/** Scraping patterns for one shop, tried before the generic fallbacks. */
+export interface EcommerceSiteInfo {
   siteName: string
   titlePatterns?: RegExp[]
   pricePatterns?: RegExp[]
   imagePatterns?: RegExp[]
-} {
-  const hostname = new URL(url).hostname.toLowerCase()
+}
 
-  if (hostname.includes('amazon.')) {
-    return {
+/**
+ * Known shops, matched by hostname substring in order.
+ *
+ * A table rather than an if-chain: adding a shop is one entry, and the match
+ * rule stays in one place instead of being restated per branch.
+ */
+const ECOMMERCE_SITES: { match: string; info: EcommerceSiteInfo }[] = [
+  {
+    match: 'amazon.',
+    info: {
       siteName: 'Amazon',
       titlePatterns: [
         /<span\s+id="productTitle"[^>]*>([^<]+)</i,
@@ -49,11 +54,11 @@ export function getEcommerceSiteInfo(url: string): {
         /<img[^>]+id="landingImage"[^>]+src="([^"]+)"/i,
         /<img[^>]+data-old-hires="([^"]+)"/i,
       ],
-    }
-  }
-
-  if (hostname.includes('ebay.')) {
-    return {
+    },
+  },
+  {
+    match: 'ebay.',
+    info: {
       siteName: 'eBay',
       titlePatterns: [
         /<h1[^>]*id="it-ttl"[^>]*>([^<]+)</i,
@@ -63,29 +68,39 @@ export function getEcommerceSiteInfo(url: string): {
         /<span[^>]*id="notranslate"[^>]*>EUR ([0-9.,]+)</i,
         /EUR\s+([0-9.,]+)/i,
       ],
-    }
-  }
-
-  if (hostname.includes('otto.de')) {
-    return {
+    },
+  },
+  {
+    match: 'otto.de',
+    info: {
       siteName: 'Otto',
       pricePatterns: [
         /<span[^>]*class="[^"]*price[^"]*"[^>]*>([0-9.,]+)[^€]*€</i,
       ],
-    }
-  }
-
-  if (hostname.includes('zalando.')) {
-    return {
+    },
+  },
+  {
+    match: 'zalando.',
+    info: {
       siteName: 'Zalando',
       pricePatterns: [
         /<span[^>]*class="[^"]*price[^"]*"[^>]*>([0-9.,]+)\s*€</i,
       ],
-    }
-  }
+    },
+  },
+]
 
-  // Default patterns for unknown sites
-  return {
-    siteName: 'Unknown',
-  }
+/** Returned for anything not in the table; only the generic patterns apply. */
+const UNKNOWN_SITE: EcommerceSiteInfo = { siteName: 'Unknown' }
+
+/**
+ * Check if URL is from a known e-commerce site and return site-specific patterns
+ */
+export function getEcommerceSiteInfo(url: string): EcommerceSiteInfo {
+  const hostname = new URL(url).hostname.toLowerCase()
+
+  return (
+    ECOMMERCE_SITES.find((site) => hostname.includes(site.match))?.info ??
+    UNKNOWN_SITE
+  )
 }

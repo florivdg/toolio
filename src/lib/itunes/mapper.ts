@@ -61,6 +61,63 @@ export function determineItunesItemType(itunesData: any): {
   }
 }
 
+/** Fields that have their own column, so they must not be duplicated into JSON. */
+const MAPPED_FIELDS = [
+  'id',
+  'trackId',
+  'collectionId',
+  'wrapperType',
+  'kind',
+  'artistName',
+  'trackName',
+  'collectionName',
+  'trackCensoredName',
+  'collectionCensoredName',
+  'trackViewUrl',
+  'collectionViewUrl',
+  'previewUrl',
+  'artworkUrl30',
+  'artworkUrl60',
+  'artworkUrl100',
+  'artworkUrl600',
+  'releaseDate',
+  'primaryGenreName',
+  'longDescription',
+  'country',
+  'currency',
+  'collectionType',
+]
+
+/** The largest artwork iTunes offered, in descending order of size. */
+function pickArtworkUrl(itunesData: any): string | undefined {
+  return (
+    itunesData.artworkUrl600 ||
+    itunesData.artworkUrl512 ||
+    itunesData.artworkUrl300 ||
+    itunesData.artworkUrl100 ||
+    itunesData.artworkUrl60 ||
+    itunesData.artworkUrl30
+  )
+}
+
+/**
+ * Everything iTunes returned that has no column of its own.
+ *
+ * Kept rather than dropped: iTunes varies its payload by media type, and the
+ * watchlist reads several of these fields back out of the blob.
+ */
+function collectAdditionalData(itunesData: any): Record<string, any> {
+  const additionalData: Record<string, any> = {}
+
+  for (const [key, value] of Object.entries(itunesData)) {
+    if (!MAPPED_FIELDS.includes(key) && value !== undefined) {
+      additionalData[key] = value
+    }
+  }
+
+  return additionalData
+}
+
 /**
  * Maps iTunes API data to our database schema for media items
  *
@@ -90,52 +147,6 @@ export function mapItunesDataToMediaItem(itunesData: any) {
       ? itunesData.collectionViewUrl
       : itunesData.trackViewUrl
 
-  // Get the best available artwork URL
-  const artworkUrl =
-    itunesData.artworkUrl600 ||
-    itunesData.artworkUrl512 ||
-    itunesData.artworkUrl300 ||
-    itunesData.artworkUrl100 ||
-    itunesData.artworkUrl60 ||
-    itunesData.artworkUrl30
-
-  // Collect additional data that doesn't fit in our standard schema
-  const additionalData: Record<string, any> = {}
-
-  // Add entity-specific fields to additionalData
-  for (const [key, value] of Object.entries(itunesData)) {
-    // Skip fields that are already mapped to our schema
-    const standardFields = [
-      'id',
-      'trackId',
-      'collectionId',
-      'wrapperType',
-      'kind',
-      'artistName',
-      'trackName',
-      'collectionName',
-      'trackCensoredName',
-      'collectionCensoredName',
-      'trackViewUrl',
-      'collectionViewUrl',
-      'previewUrl',
-      'artworkUrl30',
-      'artworkUrl60',
-      'artworkUrl100',
-      'artworkUrl600',
-      'releaseDate',
-      'primaryGenreName',
-      'longDescription',
-      'country',
-      'currency',
-      'collectionType',
-    ]
-
-    if (!standardFields.includes(key) && value !== undefined) {
-      additionalData[key] = value
-    }
-  }
-
   return {
     itunesId,
     itunesIdType,
@@ -147,7 +158,7 @@ export function mapItunesDataToMediaItem(itunesData: any) {
     censoredName,
     viewUrl,
     previewUrl: itunesData.previewUrl,
-    artworkUrl,
+    artworkUrl: pickArtworkUrl(itunesData),
     releaseDate: itunesData.releaseDate
       ? new Date(itunesData.releaseDate)
       : null,
@@ -156,8 +167,50 @@ export function mapItunesDataToMediaItem(itunesData: any) {
     description: itunesData.longDescription,
     country: mapCountryCode(itunesData.country),
     currency: itunesData.currency,
-    additionalData: JSON.stringify(additionalData),
+    additionalData: JSON.stringify(collectAdditionalData(itunesData)),
   }
+}
+
+/** The four headline price fields, which have their own columns. */
+const HEADLINE_PRICE_FIELDS = [
+  'trackPrice',
+  'trackHdPrice',
+  'collectionPrice',
+  'collectionHdPrice',
+]
+
+/**
+ * Price fields that do not fit the two columns.
+ *
+ * That is the opposite side's prices — a track row still records what the
+ * collection cost, and vice versa — plus anything else price-shaped, such as
+ * rental prices.
+ */
+function collectAdditionalPriceData(
+  itunesData: any,
+  itunesIdType: 'track' | 'collection',
+): Record<string, any> {
+  const additionalPriceData: Record<string, any> = {}
+  const oppositeSide =
+    itunesIdType === 'collection'
+      ? ['trackPrice', 'trackHdPrice']
+      : ['collectionPrice', 'collectionHdPrice']
+
+  for (const field of oppositeSide) {
+    if (itunesData[field] !== undefined) {
+      additionalPriceData[field] = itunesData[field]
+    }
+  }
+
+  for (const [key, value] of Object.entries(itunesData)) {
+    const isPriceField =
+      key.toLowerCase().includes('price') &&
+      !HEADLINE_PRICE_FIELDS.includes(key)
+
+    if (isPriceField && value !== undefined) additionalPriceData[key] = value
+  }
+
+  return additionalPriceData
 }
 
 /**
@@ -171,56 +224,20 @@ export function mapItunesDataToPriceHistory(
   itunesData: any,
   mediaItemId: string,
 ) {
-  // Determine the type of the iTunes item
   const { itunesIdType } = determineItunesItemType(itunesData)
+  const isCollection = itunesIdType === 'collection'
 
-  // Set the standard price based on item type
-  const standardPrice =
-    itunesIdType === 'collection'
-      ? itunesData.collectionPrice
-      : itunesData.trackPrice
+  const standardPrice = isCollection
+    ? itunesData.collectionPrice
+    : itunesData.trackPrice
+  const hdPrice = isCollection
+    ? itunesData.collectionHdPrice
+    : itunesData.trackHdPrice
 
-  // Set the HD price based on item type
-  const hdPrice =
-    itunesIdType === 'collection'
-      ? itunesData.collectionHdPrice
-      : itunesData.trackHdPrice
-
-  // Collect additional price data
-  const additionalPriceData: Record<string, any> = {}
-
-  // Add all price-related fields to additionalPriceData
-  if (itunesData.trackPrice !== undefined && itunesIdType === 'collection') {
-    additionalPriceData.trackPrice = itunesData.trackPrice
-  }
-
-  if (itunesData.trackHdPrice !== undefined && itunesIdType === 'collection') {
-    additionalPriceData.trackHdPrice = itunesData.trackHdPrice
-  }
-
-  if (itunesData.collectionPrice !== undefined && itunesIdType === 'track') {
-    additionalPriceData.collectionPrice = itunesData.collectionPrice
-  }
-
-  if (itunesData.collectionHdPrice !== undefined && itunesIdType === 'track') {
-    additionalPriceData.collectionHdPrice = itunesData.collectionHdPrice
-  }
-
-  // Add any other price-related fields
-  for (const [key, value] of Object.entries(itunesData)) {
-    if (
-      key.toLowerCase().includes('price') &&
-      ![
-        'trackPrice',
-        'trackHdPrice',
-        'collectionPrice',
-        'collectionHdPrice',
-      ].includes(key) &&
-      value !== undefined
-    ) {
-      additionalPriceData[key] = value
-    }
-  }
+  const additionalPriceData = collectAdditionalPriceData(
+    itunesData,
+    itunesIdType,
+  )
 
   return {
     mediaItemId,

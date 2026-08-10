@@ -85,61 +85,7 @@
 
           <div class="space-y-2">
             <Label :for="`${fieldPrefix}-priority`">Priorität</Label>
-            <Select v-model="formData.priority">
-              <SelectTrigger>
-                <SelectValue placeholder="Wählen Sie..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">
-                  <div class="flex items-center gap-2">
-                    <Star class="h-4 w-4" />
-                    Niedrig (1)
-                  </div>
-                </SelectItem>
-                <SelectItem value="2">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Mittel-niedrig (2)
-                  </div>
-                </SelectItem>
-                <SelectItem value="3">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Mittel (3)
-                  </div>
-                </SelectItem>
-                <SelectItem value="4">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Hoch (4)
-                  </div>
-                </SelectItem>
-                <SelectItem value="5">
-                  <div class="flex items-center gap-2">
-                    <div class="flex">
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                      <Star class="h-4 w-4" />
-                    </div>
-                    Sehr hoch (5)
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <WishlistPrioritySelect v-model="formData.priority" />
           </div>
         </div>
 
@@ -179,19 +125,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Star, ChevronDown, Sparkles, Loader2 } from 'lucide-vue-next'
+import { ChevronDown, Sparkles, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import WishlistPrioritySelect from './WishlistPrioritySelect.vue'
 import { DialogFooter, DialogClose } from '@/components/ui/dialog'
 import {
   Collapsible,
