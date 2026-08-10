@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { search, type SearchResponse } from '@/lib/itunes/search'
 import { z } from 'zod'
+import { handleApiError, json } from '@/lib/api/responses'
 
 // Define query parameters schema
 const queryParamsSchema = z.object({
@@ -33,52 +34,19 @@ export const GET: APIRoute = async ({ url }) => {
     })
 
     // Return the search results
-    return new Response(
-      JSON.stringify({
+    return json(
+      {
         success: true,
         resultCount: searchResponse.resultCount,
         results: searchResponse.results,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      200,
     )
   } catch (error) {
-    console.error('Error searching iTunes:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Invalid query parameters',
-          errors: error.issues,
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
-
-    // Handle other errors
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Failed to search iTunes',
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
+    return handleApiError(error, {
+      log: 'Error searching iTunes',
+      message: 'Failed to search iTunes',
+      validationMessage: 'Invalid query parameters',
+    })
   }
 }

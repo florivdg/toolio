@@ -78,9 +78,8 @@ function anItem(overrides: Record<string, unknown> = {}) {
 
 async function mountView() {
   const { mount } = await import('@vue/test-utils')
-  const View = (
-    await import('@/components/wishlists/WishlistItemsView.vue')
-  ).default
+  const View = (await import('@/components/wishlists/WishlistItemsView.vue'))
+    .default
 
   return mount(View, {
     global: {

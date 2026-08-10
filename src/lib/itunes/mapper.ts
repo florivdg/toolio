@@ -12,10 +12,13 @@ import { mapCountryCode } from './helpers'
 /**
  * Determines the type of the iTunes item based on its properties
  *
+ * Exported for its own tests: every other mapping decision in this module keys
+ * off the result, so it is worth pinning down directly.
+ *
  * @param itunesData The raw data from iTunes API
  * @returns The type classification of the iTunes item
  */
-function determineItunesItemType(itunesData: any): {
+export function determineItunesItemType(itunesData: any): {
   itunesIdType: 'track' | 'collection'
   itunesId: number
   mediaType: string

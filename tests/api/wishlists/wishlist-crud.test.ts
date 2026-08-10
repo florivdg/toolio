@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '@/db/database'
 import { wishlists } from '@/db/schema/wishlists'
 import { eq } from 'drizzle-orm'
-import { GET as listWishlists, POST as createWishlist } from '@/pages/api/wishlists/index'
+import {
+  GET as listWishlists,
+  POST as createWishlist,
+} from '@/pages/api/wishlists/index'
 import {
   DELETE as deleteWishlist,
   GET as getWishlist,

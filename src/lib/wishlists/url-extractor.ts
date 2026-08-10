@@ -52,9 +52,41 @@ export async function extractProductDetailsFromUrl(
 }
 
 /**
+ * Try each pattern in order and return the first captured group that `refine`
+ * accepts.
+ *
+ * Every extractor below works this way: site-specific patterns first, general
+ * ones as a fallback, and a per-extractor notion of what makes a hit usable. A
+ * pattern that matches but yields an unusable value must not stop the search,
+ * which is the part that is easy to get wrong when the loop is written out.
+ */
+function firstMatch<T>(
+  html: string,
+  patterns: RegExp[],
+  refine: (captured: string) => T | undefined,
+): T | undefined {
+  for (const pattern of patterns) {
+    const captured = html.match(pattern)?.[1]
+    if (!captured) continue
+
+    const value = refine(captured)
+    if (value !== undefined) return value
+  }
+
+  return undefined
+}
+
+/** A price is usable when it parses and lands in a plausible range. */
+function toPlausiblePrice(raw: string): number | undefined {
+  const price = parseFloat(raw.replace(',', '.'))
+
+  return !isNaN(price) && price > 0 && price < 100000 ? price : undefined
+}
+
+/**
  * Parse HTML content and extract product details
  */
-function parseProductDetails(
+export function parseProductDetails(
   html: string,
   url: string,
 ): Omit<ProductDetails, 'extractedFrom'> {
@@ -92,16 +124,17 @@ function parseProductDetails(
   return details
 }
 
+/** Shop names and separators that pad a page title but are not the product. */
+const TITLE_NOISE =
+  /\s*[-|]\s*(Amazon|eBay|Shop|Store|Online|Kaufen|günstig|billig).*$/i
+
 /**
  * Extract product title from HTML
  */
-function extractTitle(html: string, url: string): string | undefined {
-  const siteInfo = getEcommerceSiteInfo(url)
-
-  // Start with site-specific patterns if available
+export function extractTitle(html: string, url: string): string | undefined {
   const patterns: RegExp[] = [
-    ...(siteInfo.titlePatterns || []),
-    // General patterns as fallback
+    // Site-specific patterns first, general ones as a fallback.
+    ...(getEcommerceSiteInfo(url).titlePatterns || []),
     /<meta\s+property="og:title"\s+content="([^"]+)"/i,
     /<meta\s+name="twitter:title"\s+content="([^"]+)"/i,
     /<meta\s+name="product-title"\s+content="([^"]+)"/i,
@@ -110,32 +143,22 @@ function extractTitle(html: string, url: string): string | undefined {
     /<title>([^<]+)<\/title>/i,
   ]
 
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    if (match && match[1]) {
-      const title = match[1].trim()
-      // Clean up common suffixes
-      const cleanTitle = title
-        .replace(
-          /\s*[-|]\s*(Amazon|eBay|Shop|Store|Online|Kaufen|günstig|billig).*$/i,
-          '',
-        )
-        .replace(/\s*\|\s*.*$/, '')
-        .trim()
+  return firstMatch(html, patterns, (captured) => {
+    const title = captured
+      .trim()
+      .replace(TITLE_NOISE, '')
+      .replace(/\s*\|\s*.*$/, '')
+      .trim()
 
-      if (cleanTitle.length > 3) {
-        return cleanTitle
-      }
-    }
-  }
-
-  return undefined
+    // Anything this short is a breadcrumb or a stray label, not a product name.
+    return title.length > 3 ? title : undefined
+  })
 }
 
 /**
  * Extract product description from HTML
  */
-function extractDescription(html: string): string | undefined {
+export function extractDescription(html: string): string | undefined {
   const patterns: RegExp[] = [
     // OpenGraph description
     /<meta\s+property="og:description"\s+content="([^"]+)"/i,
@@ -147,43 +170,43 @@ function extractDescription(html: string): string | undefined {
     /<div\s+id="feature-bullets"[^>]*>.*?<span[^>]*>([^<]+)</i,
   ]
 
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    if (match && match[1]) {
-      const description = match[1].trim()
-      if (description.length > 10 && description.length < 500) {
-        return description
-      }
-    }
-  }
+  return firstMatch(html, patterns, (captured) => {
+    const description = captured.trim()
 
-  return undefined
+    return description.length > 10 && description.length < 500
+      ? description
+      : undefined
+  })
+}
+
+/**
+ * Amazon splits a price across separate whole and fraction elements, so the
+ * general single-capture patterns would read only the euros.
+ */
+function extractAmazonPrice(html: string): number | undefined {
+  const match = html.match(
+    /<span[^>]*class="a-price-whole"[^>]*>([0-9.]+)<span[^>]*class="a-price-decimal"[^>]*>[^<]*<\/span><\/span><span[^>]*class="a-price-fraction"[^>]*>([0-9]{2})<\/span>/i,
+  )
+
+  if (!match?.[1] || !match[2]) return undefined
+
+  // The whole part carries German thousands dots, which must go before parsing.
+  const whole = match[1].replace(/\./g, '').replace(/\s/g, '')
+
+  return toPlausiblePrice(`${whole}.${match[2]}`)
 }
 
 /**
  * Extract price from HTML
  */
-function extractPrice(html: string, url: string): number | undefined {
-  // Special handling for Amazon markup: combine a-price-whole and a-price-fraction
+export function extractPrice(html: string, url: string): number | undefined {
   if (url.includes('amazon.')) {
-    // Match the price block with both whole and fraction
-    const amazonPriceMatch = html.match(
-      /<span[^>]*class="a-price-whole"[^>]*>([0-9.]+)<span[^>]*class="a-price-decimal"[^>]*>[^<]*<\/span><\/span><span[^>]*class="a-price-fraction"[^>]*>([0-9]{2})<\/span>/i,
-    )
-    if (amazonPriceMatch && amazonPriceMatch[1] && amazonPriceMatch[2]) {
-      // Use comma as decimal separator for German Amazon
-      const priceStr = `${amazonPriceMatch[1].replace(/\./g, '').replace(/\s/g, '')}.${amazonPriceMatch[2]}`
-      const price = parseFloat(priceStr)
-      if (!isNaN(price) && price > 0 && price < 100000) {
-        return price
-      }
-    }
+    const amazonPrice = extractAmazonPrice(html)
+    if (amazonPrice !== undefined) return amazonPrice
   }
 
-  const siteInfo = getEcommerceSiteInfo(url)
-
   const patterns: RegExp[] = [
-    ...(siteInfo.pricePatterns || []),
+    ...(getEcommerceSiteInfo(url).pricePatterns || []),
     // General patterns as fallback
     /<meta\s+property="product:price:amount"\s+content="([0-9.,]+)"/i,
     /price[^>]*>.*?([0-9]+[.,]\d{2})/i,
@@ -194,28 +217,34 @@ function extractPrice(html: string, url: string): number | undefined {
     /"price":\s*([0-9.,]+)/i,
   ]
 
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    if (match && match[1]) {
-      const priceStr = match[1].replace(',', '.')
-      const price = parseFloat(priceStr)
-      if (!isNaN(price) && price > 0 && price < 100000) {
-        return price
-      }
-    }
-  }
+  return firstMatch(html, patterns, toPlausiblePrice)
+}
 
-  return undefined
+/** Resolves protocol-relative and root-relative image sources against the page. */
+function absoluteImageUrl(src: string, baseUrl: string): string | undefined {
+  const candidate = src.startsWith('//')
+    ? `https:${src}`
+    : src.startsWith('/')
+      ? new URL(baseUrl).origin + src
+      : src
+
+  try {
+    new URL(candidate)
+    return candidate
+  } catch {
+    return undefined
+  }
 }
 
 /**
  * Extract image URL from HTML
  */
-function extractImageUrl(html: string, baseUrl: string): string | undefined {
-  const siteInfo = getEcommerceSiteInfo(baseUrl)
-
+export function extractImageUrl(
+  html: string,
+  baseUrl: string,
+): string | undefined {
   const patterns: RegExp[] = [
-    ...(siteInfo.imagePatterns || []),
+    ...(getEcommerceSiteInfo(baseUrl).imagePatterns || []),
     // General patterns as fallback
     /<meta\s+property="og:image"\s+content="([^"]+)"/i,
     /<meta\s+name="twitter:image"\s+content="([^"]+)"/i,
@@ -224,28 +253,7 @@ function extractImageUrl(html: string, baseUrl: string): string | undefined {
     /<img[^>]+alt="[^"]*product[^"]*"[^>]+src="([^"]+)"/i,
   ]
 
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    if (match && match[1]) {
-      let imageUrl = match[1].trim()
-
-      // Convert relative URLs to absolute
-      if (imageUrl.startsWith('//')) {
-        imageUrl = 'https:' + imageUrl
-      } else if (imageUrl.startsWith('/')) {
-        const baseUrlObj = new URL(baseUrl)
-        imageUrl = baseUrlObj.origin + imageUrl
-      }
-
-      // Validate URL
-      try {
-        new URL(imageUrl)
-        return imageUrl
-      } catch {
-        continue
-      }
-    }
-  }
-
-  return undefined
+  return firstMatch(html, patterns, (captured) =>
+    absoluteImageUrl(captured.trim(), baseUrl),
+  )
 }

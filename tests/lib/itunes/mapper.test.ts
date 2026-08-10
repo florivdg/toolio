@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  determineItunesItemType,
   mapItunesDataToMediaItem,
   mapItunesDataToPriceHistory,
 } from '@/lib/itunes/mapper'
@@ -98,7 +99,8 @@ describe('mapItunesDataToMediaItem', () => {
       new Date('2023-06-01T07:00:00Z'),
     )
     expect(
-      mapItunesDataToMediaItem({ ...movie, releaseDate: undefined }).releaseDate,
+      mapItunesDataToMediaItem({ ...movie, releaseDate: undefined })
+        .releaseDate,
     ).toBeNull()
   })
 
@@ -162,5 +164,71 @@ describe('mapItunesDataToPriceHistory', () => {
       'media-3',
     )
     expect(price.additionalPriceData).toBeNull()
+  })
+})
+
+/**
+ * Every other mapping decision reads the classification below, so a wrong
+ * verdict here silently stores a track's fields under a collection's id.
+ */
+describe('determineItunesItemType', () => {
+  test('classifies a track by its kind', () => {
+    expect(determineItunesItemType(movie)).toEqual({
+      itunesIdType: 'track',
+      itunesId: 1234,
+      mediaType: 'feature',
+      entityType: 'feature-movie',
+    })
+  })
+
+  test('classifies a TV season collection', () => {
+    expect(determineItunesItemType(tvSeason)).toMatchObject({
+      itunesIdType: 'collection',
+      itunesId: 5678,
+      mediaType: 'tvShow',
+      entityType: 'tvSeason',
+    })
+  })
+
+  test('classifies an album collection', () => {
+    expect(
+      determineItunesItemType({
+        wrapperType: 'collection',
+        collectionType: 'Album',
+        collectionId: 42,
+      }),
+    ).toMatchObject({ mediaType: 'music', entityType: 'album' })
+  })
+
+  test('falls back to the lowercased collection type for anything else', () => {
+    expect(
+      determineItunesItemType({
+        wrapperType: 'collection',
+        collectionType: 'Audiobook',
+        collectionId: 7,
+      }),
+    ).toMatchObject({ mediaType: 'audiobook', entityType: 'audiobook' })
+  })
+
+  test('reports an unknown collection rather than undefined', () => {
+    expect(
+      determineItunesItemType({ wrapperType: 'collection', collectionId: 8 }),
+    ).toMatchObject({ mediaType: 'unknown', entityType: 'unknown' })
+  })
+
+  test('falls back to the wrapper type when a track has no kind', () => {
+    expect(
+      determineItunesItemType({ wrapperType: 'artist', trackId: 9 }),
+    ).toMatchObject({ mediaType: 'artist', entityType: 'artist' })
+  })
+
+  test('takes only the leading segment of a hyphenated kind', () => {
+    expect(
+      determineItunesItemType({
+        wrapperType: 'track',
+        kind: 'tv-episode',
+        trackId: 10,
+      }),
+    ).toMatchObject({ mediaType: 'tv', entityType: 'tv-episode' })
   })
 })

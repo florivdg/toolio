@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/db/database'
 import { wishlistItems, wishlists } from '@/db/schema/wishlists'
-import { badRequest, notFound, serverError } from './responses'
+import { notFound } from './responses'
 
 /** Path parameters shared by every /wishlists/:wishlistId/items/:itemId route. */
 export const itemPathParamsSchema = z.object({
@@ -23,8 +23,7 @@ export const itemPathParamsSchema = z.object({
  * check `response` first, which keeps the 404 bodies identical across routes.
  */
 type GuardResult<T> =
-  | { value: T; response?: undefined }
-  | { value?: undefined; response: Response }
+  { value: T; response?: undefined } | { value?: undefined; response: Response }
 
 export function requireWishlist(
   wishlistId: string,
@@ -53,7 +52,10 @@ export function requireWishlistItem(
     .select()
     .from(wishlistItems)
     .where(
-      and(eq(wishlistItems.id, itemId), eq(wishlistItems.wishlistId, wishlistId)),
+      and(
+        eq(wishlistItems.id, itemId),
+        eq(wishlistItems.wishlistId, wishlistId),
+      ),
     )
     .get()
 
@@ -68,26 +70,6 @@ export function itemScope(wishlistId: string, itemId: string) {
   )
 }
 
-/**
- * Maps a thrown error onto the response the routes previously produced inline:
- * 400 with the issue list for validation failures, 500 otherwise.
- *
- * `log` and `message` stay separate because the routes log in English for
- * developers but answer in German for users.
- */
-export function handleApiError(
-  error: unknown,
-  {
-    log,
-    message,
-    includeErrorDetail = true,
-  }: { log: string; message: string; includeErrorDetail?: boolean },
-): Response {
-  console.error(`${log}:`, error)
-
-  if (error instanceof z.ZodError) {
-    return badRequest('Ungültige Anfrageparameter', error.issues)
-  }
-
-  return serverError(message, includeErrorDetail ? error : undefined)
-}
+// Re-exported so the wishlist routes keep importing it from the guard module
+// they already use; the implementation is generic and lives with the responses.
+export { handleApiError } from './responses'

@@ -25,7 +25,9 @@ export interface RemoveItemResponse {
 }
 
 // Helper interface for parsed additional data
-export interface ParsedWatchlistItem
-  extends Omit<WatchlistItem, 'additionalData'> {
+export interface ParsedWatchlistItem extends Omit<
+  WatchlistItem,
+  'additionalData'
+> {
   additionalData?: Record<string, any>
 }

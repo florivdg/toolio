@@ -4,6 +4,8 @@
  * This module provides functions to lookup items in the iTunes Store by ID and country.
  */
 
+import type { ItunesResponse } from './types'
+
 interface LookupParams {
   /**
    * iTunes ID to lookup (can be trackId or collectionId)
@@ -16,44 +18,7 @@ interface LookupParams {
   country?: string
 }
 
-interface ItemResult {
-  wrapperType: string
-  kind?: string
-  collectionType?: string
-  trackId?: number
-  collectionId?: number
-  artistName: string
-  trackName?: string
-  collectionName?: string
-  trackCensoredName?: string
-  collectionCensoredName?: string
-  trackViewUrl?: string
-  collectionViewUrl?: string
-  previewUrl?: string
-  artworkUrl30?: string
-  artworkUrl60?: string
-  artworkUrl100?: string
-  artworkUrl600?: string
-  collectionPrice?: number
-  trackPrice?: number
-  collectionHdPrice?: number
-  trackHdPrice?: number
-  releaseDate: string
-  collectionExplicitness?: string
-  trackExplicitness?: string
-  trackTimeMillis?: number
-  country: string
-  currency: string
-  primaryGenreName: string
-  contentAdvisoryRating?: string
-  longDescription?: string
-  [key: string]: any // Allow for additional properties
-}
-
-interface LookupResponse {
-  resultCount: number
-  results: ItemResult[]
-}
+type LookupResponse = ItunesResponse
 
 /**
  * Lookup an item in the iTunes store by ID and country

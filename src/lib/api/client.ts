@@ -17,10 +17,7 @@ interface Envelope {
   message?: string
 }
 
-async function readEnvelope<T>(
-  input: string,
-  init?: RequestInit,
-): Promise<T> {
+async function readEnvelope<T>(input: string, init?: RequestInit): Promise<T> {
   const res = await fetch(input, init)
 
   if (!res.ok) {

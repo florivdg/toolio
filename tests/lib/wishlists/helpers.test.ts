@@ -46,14 +46,15 @@ describe('getEcommerceSiteInfo', () => {
 
   test('matches on the hostname, not the path', () => {
     // A path segment naming another retailer must not win over the real host.
-    expect(getEcommerceSiteInfo('https://example.com/amazon.de/x').siteName).toBe(
-      'Unknown',
-    )
+    expect(
+      getEcommerceSiteInfo('https://example.com/amazon.de/x').siteName,
+    ).toBe('Unknown')
   })
 
   test('supplies Amazon extraction patterns that match real markup', () => {
     const info = getEcommerceSiteInfo('https://www.amazon.de/dp/1')
-    const title = '<span id="productTitle" class="a-size-large">Ein Produkt</span>'
+    const title =
+      '<span id="productTitle" class="a-size-large">Ein Produkt</span>'
     const matched = info.titlePatterns?.find((p) => p.test(title))
     expect(matched).toBeDefined()
     expect(title.match(matched!)?.[1]?.trim()).toBe('Ein Produkt')
