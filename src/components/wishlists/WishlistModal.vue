@@ -71,7 +71,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'vue-sonner'
-import { useCreateWishlistMutation, useUpdateWishlistMutation } from '@/lib/wishlists/queries'
+import {
+  useCreateWishlistMutation,
+  useUpdateWishlistMutation,
+} from '@/lib/wishlists/queries'
 import type { Wishlist } from '@/db/schema/wishlists'
 
 // Props
@@ -217,7 +220,7 @@ const handleSubmit = async () => {
     }
 
     let result: Wishlist
-    
+
     if (isEditMode.value) {
       result = await updateWishlistMutation.mutate({
         id: props.wishlist!.id,

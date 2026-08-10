@@ -5,23 +5,13 @@ import { db } from '@/db/database'
 import { wishlistItems, wishlistItemSchema } from '@/db/schema/wishlists'
 import { json } from '@/lib/api/responses'
 import { handleApiError, requireWishlist } from '@/lib/api/wishlist-guards'
-
-/**
- * `z.coerce.boolean()` is Boolean(value), so every non-empty string — including
- * 'false' — becomes true, which made ?purchased=false return purchased items.
- * Match the literal strings instead and reject anything else.
- */
-const booleanParam = z
-  .enum(['true', 'false'])
-  .transform((value) => value === 'true')
-  .optional()
+import { booleanParam, pagingParams } from '@/lib/api/query-params'
 
 // Schema for query parameters
 const queryParamsSchema = z.object({
-  limit: z.coerce.number().min(1).max(100).default(20),
-  offset: z.coerce.number().min(0).default(0),
-  purchased: booleanParam,
-  active: booleanParam,
+  ...pagingParams,
+  purchased: booleanParam.optional(),
+  active: booleanParam.optional(),
 })
 
 // Schema for path parameters

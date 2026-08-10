@@ -105,7 +105,6 @@
       :loading="deleteWishlistDialog.loading"
       @confirm="deleteWishlist"
     />
-
   </div>
 </template>
 
@@ -135,7 +134,6 @@ import { FileText } from 'lucide-vue-next'
 const router = useRouter()
 const route = useRoute()
 const wishlistId = computed(() => route.params.id as string)
-
 
 // UI State
 const filter = ref('all')
@@ -169,18 +167,22 @@ const moveItemDialog = ref({
 })
 
 // Pinia Colada queries
-const { 
-  data: wishlistData, 
+const {
+  data: wishlistData,
   isLoading: wishlistLoading,
-  error: wishlistError 
+  error: wishlistError,
 } = useWishlistQuery(wishlistId)
 
-const { 
-  data: itemsData, 
-  isLoading: itemsLoading, 
+const {
+  data: itemsData,
+  isLoading: itemsLoading,
   error: itemsError,
-  refetch: refetchItems 
-} = useWishlistItemsQuery(wishlistId, pagination.value.limit, pagination.value.offset)
+  refetch: refetchItems,
+} = useWishlistItemsQuery(
+  wishlistId,
+  pagination.value.limit,
+  pagination.value.offset,
+)
 
 // Mutations
 const deleteWishlistMutation = useDeleteWishlistMutation()
@@ -190,14 +192,19 @@ const updateItemStatusMutation = useUpdateWishlistItemStatusMutation()
 // Computed properties
 const items = computed(() => itemsData.value?.data || [])
 const loading = computed(() => itemsLoading.value || wishlistLoading.value)
-const error = computed(() => itemsError.value?.message || wishlistError.value?.message || null)
+const error = computed(
+  () => itemsError.value?.message || wishlistError.value?.message || null,
+)
 const hasMore = computed(() => itemsData.value?.pagination?.hasMore || false)
-const currentPagination = computed(() => itemsData.value?.pagination || {
-  limit: 20,
-  offset: 0,
-  total: 0,
-  hasMore: false,
-})
+const currentPagination = computed(
+  () =>
+    itemsData.value?.pagination || {
+      limit: 20,
+      offset: 0,
+      total: 0,
+      hasMore: false,
+    },
+)
 
 // Create a default item for when no item is being edited
 const defaultItem: WishlistItem = {
@@ -278,7 +285,7 @@ const togglePurchased = async (itemId: string, purchased: boolean) => {
       status: 'purchase',
       value: purchased,
     })
-    
+
     toast.success(
       purchased
         ? 'Artikel als gekauft markiert!'
@@ -298,12 +305,8 @@ const toggleActive = async (itemId: string, active: boolean) => {
       status: 'active',
       value: active,
     })
-    
-    toast.success(
-      active
-        ? 'Artikel aktiviert!'
-        : 'Artikel deaktiviert!',
-    )
+
+    toast.success(active ? 'Artikel aktiviert!' : 'Artikel deaktiviert!')
   } catch (err) {
     console.error('Error updating active status:', err)
     toast.error('Fehler beim Aktualisieren des Aktivitätsstatus')
@@ -363,7 +366,7 @@ const onItemMoved = (movedItem: WishlistItem) => {
   // Close the move dialog
   moveItemDialog.value.open = false
   moveItemDialog.value.item = null
-  
+
   toast.success('Artikel erfolgreich verschoben!')
 }
 

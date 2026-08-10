@@ -171,7 +171,8 @@ export function useCreateWishlistItemMutation() {
         `/api/wishlists/${wishlistId}/items`,
         jsonBody('POST', data),
       ),
-    onSuccess: (_, { wishlistId }) => invalidateWishlist(queryCache, wishlistId),
+    onSuccess: (_, { wishlistId }) =>
+      invalidateWishlist(queryCache, wishlistId),
   })
 }
 
@@ -192,7 +193,8 @@ export function useUpdateWishlistItemMutation() {
         `/api/wishlists/${wishlistId}/items/${itemId}`,
         jsonBody('PUT', data),
       ),
-    onSuccess: (_, { wishlistId }) => invalidateWishlist(queryCache, wishlistId),
+    onSuccess: (_, { wishlistId }) =>
+      invalidateWishlist(queryCache, wishlistId),
   })
 }
 
@@ -211,7 +213,8 @@ export function useDeleteWishlistItemMutation() {
         `/api/wishlists/${wishlistId}/items/${itemId}`,
         { method: 'DELETE' },
       ),
-    onSuccess: (_, { wishlistId }) => invalidateWishlist(queryCache, wishlistId),
+    onSuccess: (_, { wishlistId }) =>
+      invalidateWishlist(queryCache, wishlistId),
   })
 }
 
@@ -237,7 +240,8 @@ export function useUpdateWishlistItemStatusMutation() {
           [status === 'active' ? 'isActive' : 'isPurchased']: value,
         }),
       ),
-    onSuccess: (_, { wishlistId }) => invalidateWishlist(queryCache, wishlistId),
+    onSuccess: (_, { wishlistId }) =>
+      invalidateWishlist(queryCache, wishlistId),
   })
 }
 

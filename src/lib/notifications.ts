@@ -76,4 +76,3 @@ export async function sendNotification(message: string): Promise<void> {
     throw new Error(`Failed to send notification: ${String(error)}`)
   }
 }
-

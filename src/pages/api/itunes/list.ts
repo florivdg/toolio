@@ -4,27 +4,17 @@ import { itunesMediaItem, itunesPriceHistory } from '@/db/schema/itunes'
 import { desc, and, sql, SQL } from 'drizzle-orm'
 import { z } from 'zod'
 import { handleApiError, json } from '@/lib/api/responses'
-
-/**
- * `z.coerce.boolean()` is `Boolean(value)`, so every non-empty string — `'false'`
- * included — coerces to true. Using it here made `?withPrices=false` return the
- * expensive price-joined payload.
- */
-const booleanParam = z
-  .enum(['true', 'false'])
-  .transform((value) => value === 'true')
-  .default(false)
+import { booleanParam, pagingParams } from '@/lib/api/query-params'
 
 // Define query parameters schema
 const queryParamsSchema = z.object({
-  limit: z.coerce.number().min(1).max(100).default(20),
-  offset: z.coerce.number().min(0).default(0),
+  ...pagingParams,
   artistName: z.string().optional(),
   name: z.string().optional(),
   genreName: z.string().optional(),
   mediaType: z.string().optional(),
   entityType: z.string().optional(),
-  withPrices: booleanParam,
+  withPrices: booleanParam.default(false),
 })
 
 type QueryParams = z.infer<typeof queryParamsSchema>

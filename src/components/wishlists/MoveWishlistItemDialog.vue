@@ -60,7 +60,10 @@ import {
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
-import { useWishlistsQuery, useMoveWishlistItemMutation } from '@/lib/wishlists/queries'
+import {
+  useWishlistsQuery,
+  useMoveWishlistItemMutation,
+} from '@/lib/wishlists/queries'
 import type { WishlistItem } from '@/db/schema/wishlists'
 
 // Props
@@ -94,7 +97,7 @@ const moveItemMutation = useMoveWishlistItemMutation()
 const availableWishlists = computed(() => {
   if (!wishlistsState.value.data?.data || !props.item) return []
   return wishlistsState.value.data.data.filter(
-    (wishlist) => wishlist.id !== props.item?.wishlistId
+    (wishlist) => wishlist.id !== props.item?.wishlistId,
   )
 })
 
@@ -118,7 +121,6 @@ watch(isOpen, (newValue) => {
   }
 })
 
-
 // Move item to selected wishlist
 const moveItem = async () => {
   if (!props.item || !selectedWishlistId.value) {
@@ -139,7 +141,7 @@ const moveItem = async () => {
 
     // Close dialog
     isOpen.value = false
-    
+
     // Toast success message is handled by parent component
   } catch (err) {
     console.error('Error moving item:', err)

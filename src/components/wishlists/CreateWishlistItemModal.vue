@@ -32,6 +32,13 @@
 import { ref, reactive, watch } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import {
+  emptyItemFormData,
+  resetItemFormData,
+  submitItemForm,
+  toItemRequestData,
+} from '@/lib/wishlists/item-form'
+import type { WishlistItemFormData } from '@/lib/wishlists/item-form'
+import {
   Dialog,
   DialogHeader,
   DialogTitle,
@@ -40,7 +47,6 @@ import {
   DialogScrollContent,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { toast } from 'vue-sonner'
 import WishlistItemForm from './WishlistItemForm.vue'
 import { useCreateWishlistItemMutation } from '@/lib/wishlists/queries'
 import type { WishlistItem } from '@/db/schema/wishlists'
@@ -68,15 +74,7 @@ const emit = defineEmits<Emits>()
 // Reactive state
 const isOpen = ref(props.modelValue)
 const isSubmitting = ref(false)
-const formData = reactive({
-  name: '',
-  description: '',
-  price: '',
-  url: '',
-  imageUrl: '',
-  priority: '3',
-  notes: '',
-})
+const formData = reactive(emptyItemFormData())
 
 // Pinia Colada mutation
 const createItemMutation = useCreateWishlistItemMutation()
@@ -95,58 +93,31 @@ watch(isOpen, (newValue) => {
 })
 
 // Reset form data
-const resetForm = () => {
-  formData.name = ''
-  formData.description = ''
-  formData.price = ''
-  formData.url = ''
-  formData.imageUrl = ''
-  formData.priority = '3'
-  formData.notes = ''
-}
+const resetForm = () => resetItemFormData(formData)
 
 // Update form data from magic button
-const updateFormData = (newFormData: typeof formData) => {
+const updateFormData = (newFormData: WishlistItemFormData) => {
   Object.assign(formData, newFormData)
 }
 
 // Handle form submission
 const handleSubmit = async () => {
-  try {
-    isSubmitting.value = true
+  const result = await submitItemForm(isSubmitting, {
+    action: () =>
+      createItemMutation.mutate({
+        wishlistId: props.wishlistId,
+        data: toItemRequestData(formData),
+      }),
+    log: 'Error creating wishlist item',
+    fallbackMessage: 'Fehler beim Hinzufügen des Artikels',
+  })
 
-    const requestData = {
-      name: formData.name.trim(),
-      description: formData.description.trim() || undefined,
-      price: formData.price ? parseFloat(formData.price) : undefined,
-      url: formData.url.trim(),
-      imageUrl: formData.imageUrl.trim() || undefined,
-      priority: parseInt(formData.priority),
-      notes: formData.notes.trim() || undefined,
-    }
+  if (!result) return
 
-    const result = await createItemMutation.mutate({
-      wishlistId: props.wishlistId,
-      data: requestData,
-    })
+  emit('created', result)
 
-    // Emit the created item
-    emit('created', result)
-
-    // Reset form and close dialog
-    resetForm()
-    isOpen.value = false
-
-    // Toast success message is handled by parent component
-  } catch (err) {
-    console.error('Error creating wishlist item:', err)
-    toast.error(
-      err instanceof Error
-        ? err.message
-        : 'Fehler beim Hinzufügen des Artikels',
-    )
-  } finally {
-    isSubmitting.value = false
-  }
+  // Reset form and close dialog. The success toast is the parent's job.
+  resetForm()
+  isOpen.value = false
 }
 </script>

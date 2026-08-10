@@ -24,7 +24,10 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     const { wishlistId, itemId } = itemPathParamsSchema.parse(params)
     const { targetWishlistId } = moveItemSchema.parse(await request.json())
 
-    const source = requireWishlist(wishlistId, 'Quell-Wunschliste nicht gefunden')
+    const source = requireWishlist(
+      wishlistId,
+      'Quell-Wunschliste nicht gefunden',
+    )
     if (source.response) return source.response
 
     const target = requireWishlist(

@@ -172,11 +172,13 @@ import { Badge } from '@/components/ui/badge'
 import CreateWishlistModal from './CreateWishlistModal.vue'
 import { AlertCircle, FileText, Package } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
-import { useWishlistsQuery, type WishlistWithItems } from '@/lib/wishlists/queries'
+import {
+  useWishlistsQuery,
+  type WishlistWithItems,
+} from '@/lib/wishlists/queries'
 
 // Vue Router
 const router = useRouter()
-
 
 // Pagination state
 const limit = 12
@@ -187,11 +189,11 @@ const loadingMore = ref(false)
 const allWishlists = ref<WishlistWithItems[]>([])
 
 // Primary query for the first page
-const { 
-  data: initialData, 
-  isLoading: initialLoading, 
-  error: initialError, 
-  refetch: refetchInitial 
+const {
+  data: initialData,
+  isLoading: initialLoading,
+  error: initialError,
+  refetch: refetchInitial,
 } = useWishlistsQuery(limit, 0)
 
 // Computed values
@@ -223,14 +225,18 @@ onMounted(() => {
 
 // Watch for initial data changes
 import { watch } from 'vue'
-watch(initialData, (newData) => {
-  if (newData?.data) {
-    allWishlists.value = newData.data
-      .map(normalizeWishlist)
-      .filter(Boolean) as WishlistWithItems[]
-    currentOffset.value = 0
-  }
-}, { deep: true })
+watch(
+  initialData,
+  (newData) => {
+    if (newData?.data) {
+      allWishlists.value = newData.data
+        .map(normalizeWishlist)
+        .filter(Boolean) as WishlistWithItems[]
+      currentOffset.value = 0
+    }
+  },
+  { deep: true },
+)
 
 // Handle wishlist created event from modal
 const handleWishlistCreated = (wishlist: WishlistWithItems) => {
@@ -243,19 +249,21 @@ const handleWishlistCreated = (wishlist: WishlistWithItems) => {
 // Load more wishlists - use direct fetch for additional pages
 const loadMore = async () => {
   if (loadingMore.value || !hasMore.value) return
-  
+
   loadingMore.value = true
   const newOffset = allWishlists.value.length
-  
+
   try {
-    const response = await fetch(`/api/wishlists?limit=${limit}&offset=${newOffset}`)
-    
+    const response = await fetch(
+      `/api/wishlists?limit=${limit}&offset=${newOffset}`,
+    )
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
     const data = await response.json()
-    
+
     if (!data.success) {
       throw new Error('API returned success: false')
     }
