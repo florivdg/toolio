@@ -63,7 +63,7 @@
     "typescript": "^6.0.0"
   },
   "overrides": {
-    "@peculiar/asn1-rsa": "2.8.0",
+    "@peculiar/asn1-rsa": "2.9.4",
     "@peculiar/asn1-schema": "2.8.0",
     "@peculiar/asn1-x509": "2.8.0"
   }
