@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth'
-import { isPublicPath, signInRedirect } from '@/lib/auth-access'
+import { requiresSession, signInRedirect } from '@/lib/auth-access'
 import { defineMiddleware } from 'astro:middleware'
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -19,7 +19,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.user = null
     context.locals.session = null
 
-    if (!isPublicPath(currentPath)) {
+    if (requiresSession(currentPath)) {
       return context.redirect(signInRedirect(currentPath))
     }
   }

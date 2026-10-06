@@ -32,15 +32,28 @@ test.describe('authentication gate', () => {
     expect(response.headers()['location']).toContain('/sign-in')
   })
 
-  test('leaves the price-update endpoint public for the cron job', async ({
+  test('answers an anonymous price-update call with 401, not a redirect', async ({
     request,
   }) => {
+    // JSON like the cron sends; Astro refuses a cross-site POST without a
+    // content type with its own 403 before the route is reached.
+    const response = await request.post('/api/itunes/update-prices', {
+      data: {},
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    })
+
+    expect(response.status()).toBe(401)
+    expect((await response.json()).success).toBe(false)
+  })
+
+  test('no longer runs the price update on GET', async ({ request }) => {
     const response = await request.get('/api/itunes/update-prices', {
       maxRedirects: 0,
       failOnStatusCode: false,
     })
 
-    expect(response.status()).toBe(200)
+    expect(response.status()).toBe(405)
   })
 
   test('rejects wrong credentials without signing in', async ({ page }) => {

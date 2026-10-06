@@ -43,7 +43,7 @@ This tool consists of four main components:
 ### 🔄 Automated Price Updates
 
 - Update all stored items' prices in a single request
-- Designed for cronjob automation and manual updates
+- Für den Cronjob gedacht, abgesichert über `PRICE_UPDATE_CRON_SECRET`
 - Detailed success/error reporting for each item
 - Robust error handling for unavailable items
 
@@ -248,12 +248,18 @@ GET /api/itunes/list?artistName=nolan&mediaType=movie&withPrices=true&limit=10
 
 Update current prices for all stored iTunes media items by fetching fresh data from the iTunes Store API.
 
-**Endpoint:** `GET /api/itunes/update-prices`
+**Endpoint:** `POST /api/itunes/update-prices`
 
-This endpoint is designed for automated price tracking and can be called:
+Dieser Endpunkt ist für den Cronjob gedacht, der die Preise alle 6 Stunden aktualisiert. Er verlangt keine Sitzung, sondern ein Bearer-Secret:
 
-- Manually via UI (für manuelle Aktualisierung)
-- Via cronjob for scheduled updates (für automatische Aktualisierung)
+- Header `Authorization: Bearer <PRICE_UPDATE_CRON_SECRET>`
+- Header `Content-Type: application/json` mit dem Body `{}`. Ohne Content-Type lehnt Astro den POST mit `403` ab, bevor der Endpunkt erreicht wird.
+
+Antworten außer dem Erfolg:
+
+- `401`: Secret fehlt oder ist falsch. Ist `PRICE_UPDATE_CRON_SECRET` auf dem Server nicht gesetzt, wird jede Anfrage abgelehnt.
+- `405`: Andere Methode als `POST`, zum Beispiel das frühere `GET`.
+- `429`: Eine Aktualisierung läuft bereits oder liegt weniger als 60 Sekunden zurück (Header `Retry-After`).
 
 #### Response Format
 
@@ -305,11 +311,15 @@ This endpoint is designed for automated price tracking and can be called:
 #### Usage Examples
 
 ```bash
-# Update all prices manually
-GET /api/itunes/update-prices
+# Preise im Docker-Container von Hand aktualisieren (liest das Secret selbst)
+docker compose exec astro /app/scripts/update-prices-cron.sh
 
-# Use in a cronjob for automated updates
-# 0 */6 * * * curl -X GET https://your-domain.com/api/itunes/update-prices
+# Direkter Aufruf; das Secret kommt über stdin, nicht über die Kommandozeile
+printf 'Authorization: Bearer %s\n' "$PRICE_UPDATE_CRON_SECRET" |
+  curl -X POST https://your-domain.com/api/itunes/update-prices \
+    -H @- \
+    -H "Content-Type: application/json" \
+    --data '{}'
 ```
 
 ## Data Models
@@ -400,9 +410,10 @@ GET /api/itunes/list?limit=50&offset=100
 ### Update All Prices
 
 ```bash
-# Manually update all stored item prices
-GET /api/itunes/update-prices
+# Alle gespeicherten Preise aktualisieren (Bearer-Secret erforderlich)
+POST /api/itunes/update-prices
+Authorization: Bearer <PRICE_UPDATE_CRON_SECRET>
+Content-Type: application/json
 
-# Set up automated updates via cronjob (every 6 hours)
-# 0 */6 * * * curl -X GET https://your-domain.com/api/itunes/update-prices
+# Im Docker-Image läuft das alle 6 Stunden über scripts/update-prices-cron.sh
 ```

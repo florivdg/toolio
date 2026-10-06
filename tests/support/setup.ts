@@ -21,6 +21,17 @@ process.env.DB_FILE_NAME = ':memory:'
  */
 process.env.NOTI_API_KEY = 'test-key-never-sent'
 
+/**
+ * Better Auth reads its secret and `src/lib/auth.ts` its base URL when first
+ * imported. Pinned so the auth integration tests sign cookies with a known,
+ * test-only secret against a fixed origin instead of whatever is in .env.
+ * The cron secret is cleared so only the tests that set it see one.
+ */
+process.env.BETTER_AUTH_SECRET = 'test-only-better-auth-secret-0123456789'
+process.env.BETTER_AUTH_URL = 'http://localhost:4321'
+process.env.PASSKEY_ORIGIN = 'http://localhost:4321'
+delete process.env.PRICE_UPDATE_CRON_SECRET
+
 const { db } = await import('@/db/database')
 const { migrate } = await import('drizzle-orm/bun-sqlite/migrator')
 

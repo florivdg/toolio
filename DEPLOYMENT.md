@@ -39,6 +39,9 @@ BETTER_AUTH_SECRET=your-very-secure-secret-key
 # Notification API key (required for notification services)
 NOTI_API_KEY=your-notification-api-key
 
+# Bearer secret for the scheduled price update (required, see step 5)
+PRICE_UPDATE_CRON_SECRET=your-price-update-secret
+
 # Passkey authentication configuration (for WebAuthn)
 PASSKEY_RP_ID=your-domain.com
 PASSKEY_ORIGIN=https://your-domain.com
@@ -53,6 +56,7 @@ TRAEFIK_DNS=toolio
 Make sure to replace:
 
 - `your-very-secure-secret-key` with a strong random string
+- `your-price-update-secret` with a different strong random string
 - `your-domain.com` with your actual domain name
 - `https://your-domain.com` with your actual domain URL
 
@@ -77,7 +81,33 @@ This will pull the latest Toolio image and start the container with the configur
 
 ### 5. Configure Automatic Price Updates (Optional)
 
-Toolio includes automatic iTunes price updates that run every 6 hours. These are enabled by default when using Docker. To customize the cron schedule or server URL:
+Toolio includes automatic iTunes price updates that run every 6 hours. These are enabled by default when using Docker, but only run once `PRICE_UPDATE_CRON_SECRET` is set.
+
+The cron job calls `POST /api/itunes/update-prices` with `Authorization: Bearer <PRICE_UPDATE_CRON_SECRET>` and `Content-Type: application/json` (without a content type, Astro rejects the POST with `403` before it reaches the endpoint). Any method other than `POST` gets `405`. The endpoint has no session-based access: any request without exactly this secret is answered with `401`, and if the variable is unset or empty on the server every request is rejected. If the variable is missing in the container, the cron script refuses to run and logs an error.
+
+1. Generate a secret and add it to the `.env` file next to `docker-compose.yml`:
+
+   ```bash
+   echo "PRICE_UPDATE_CRON_SECRET=$(openssl rand -base64 32)" >> .env
+   ```
+
+   The example Compose file already loads this file via `env_file: .env`; if yours does not, pass the variable to the container another way.
+
+2. Recreate the container so both the server and the cron job pick it up. The startup script hands the secret to cron in a root-only file under `/run/toolio-cron`, so a plain process restart without recreating is not enough after changing `.env`:
+
+   ```bash
+   docker compose up -d --force-recreate
+   ```
+
+3. To trigger an update by hand:
+
+   ```bash
+   docker compose exec astro /app/scripts/update-prices-cron.sh
+   ```
+
+To limit load on the iTunes API, the endpoint runs one update at a time and at most once per 60 seconds; further requests get `429` until then. This lock and cooldown live in the server process's memory, so they reset on restart and are not shared if you run more than one instance.
+
+To customize the server URL:
 
 1. Set the `SERVER_URL` environment variable in your Docker Compose file:
 
