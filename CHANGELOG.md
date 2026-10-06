@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.8.0
+
+[compare changes](https://github.com/florivdg/toolio/compare/v0.7.0...v0.8.0)
+
+### 🩹 Fixes
+
+- **auth:** Sichere Weiterleitungen nach der Anmeldung, authentifizierte Preisupdates und erneute Anmeldung für Passkey-Änderungen ([#67](https://github.com/florivdg/toolio/pull/67))
+
+### 🏡 Chore
+
+- Coverage-Berichte ignorieren und lcov.info aus der Versionskontrolle entfernen ([c6c12aa](https://github.com/florivdg/toolio/commit/c6c12aa))
+
+#### ⚠️ Breaking Changes
+
+- Preisupdates erfordern jetzt `POST /api/itunes/update-prices` mit `Authorization: Bearer <PRICE_UPDATE_CRON_SECRET>` und `Content-Type: application/json`. Ein neues, zufälliges `PRICE_UPDATE_CRON_SECRET` konfigurieren und den Container neu erstellen. Ohne Secret bleibt der Endpunkt gesperrt. Externe Scheduler müssen auf authentifizierte JSON-POST-Anfragen umgestellt werden.
+
+### ❤️ Contributors
+
+- Florian van der Galiën <hallo@flori.dev>
+
 ## v0.7.0
 
 [compare changes](https://github.com/florivdg/toolio/compare/v0.6.0...v0.7.0)
