@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { passkey } from '@/lib/auth-client'
+import { passkey, signOut } from '@/lib/auth-client'
+import { signInRedirect } from '@/lib/auth-access'
+import {
+  SESSION_NOT_FRESH_CODE,
+  SESSION_NOT_FRESH_MESSAGE,
+} from '@/lib/auth-session'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,7 +16,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Plus, KeyRound } from 'lucide-vue-next'
+import { Loader2, Plus, KeyRound, LogIn } from 'lucide-vue-next'
 import PasskeyTable from './PasskeyTable.vue'
 import type { Passkey } from '@/lib/passkeys'
 
@@ -20,6 +25,33 @@ const isLoading = ref(false)
 const isAddingPasskey = ref(false)
 const passkeyName = ref('')
 const error = ref('')
+// Set when the server wants a recent sign-in before changing passkeys.
+const needsReauth = ref(false)
+const isSigningOut = ref(false)
+
+function requireReauth() {
+  needsReauth.value = true
+  error.value = SESSION_NOT_FRESH_MESSAGE
+}
+
+/**
+ * Signs out first: the middleware sends a signed-in visitor away from the
+ * sign-in page, so going there directly would just land on the home page.
+ */
+async function reauthenticate() {
+  isSigningOut.value = true
+  try {
+    const result = await signOut()
+    if (result?.error) throw result.error
+
+    window.location.href = signInRedirect('/account')
+  } catch (err) {
+    error.value = 'Abmelden fehlgeschlagen. Bitte versuchen Sie es erneut.'
+    console.error('Error signing out for re-authentication:', err)
+  } finally {
+    isSigningOut.value = false
+  }
+}
 
 async function loadPasskeys() {
   isLoading.value = true
@@ -40,6 +72,7 @@ async function loadPasskeys() {
 }
 
 async function addPasskey() {
+  needsReauth.value = false
   if (!passkeyName.value.trim()) {
     error.value = 'Bitte geben Sie einen Namen für den Passkey ein'
     return
@@ -51,6 +84,10 @@ async function addPasskey() {
 
     // The client reports a rejected registration in the result rather than by
     // throwing, so both paths have to be handled.
+    if (result?.error?.code === SESSION_NOT_FRESH_CODE) {
+      requireReauth()
+      return
+    }
     if (result?.error) {
       error.value =
         result.error.message || 'Fehler beim Hinzufügen des Passkeys'
@@ -73,6 +110,7 @@ async function deletePasskey(id: string) {
     return
   }
 
+  needsReauth.value = false
   try {
     const response = await fetch('/api/auth/passkeys', {
       method: 'DELETE',
@@ -81,6 +119,14 @@ async function deletePasskey(id: string) {
       },
       body: JSON.stringify({ id }),
     })
+
+    if (response.status === 403) {
+      const data = await response.json().catch(() => null)
+      if (data?.code === SESSION_NOT_FRESH_CODE) {
+        requireReauth()
+        return
+      }
+    }
 
     if (!response.ok) {
       throw new Error('Failed to delete passkey')
@@ -133,8 +179,22 @@ onMounted(() => {
       </div>
 
       <!-- Error Message -->
-      <div v-if="error" class="rounded-md bg-red-50 p-3 text-sm text-red-600">
-        {{ error }}
+      <div
+        v-if="error"
+        class="flex flex-wrap items-center justify-between gap-2 rounded-md bg-red-50 p-3 text-sm text-red-600"
+      >
+        <span>{{ error }}</span>
+        <Button
+          v-if="needsReauth"
+          size="sm"
+          variant="outline"
+          :disabled="isSigningOut"
+          @click="reauthenticate"
+        >
+          <Loader2 v-if="isSigningOut" class="mr-2 h-4 w-4 animate-spin" />
+          <LogIn v-else class="mr-2 h-4 w-4" />
+          Erneut anmelden
+        </Button>
       </div>
 
       <!-- Passkeys Table -->

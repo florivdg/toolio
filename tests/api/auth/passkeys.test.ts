@@ -5,6 +5,7 @@ import {
   DELETE as deletePasskey,
   GET as listPasskeys,
 } from '@/pages/api/auth/passkeys'
+import { resetAuth, seedPasskey } from '../../support/auth'
 import { callRoute, readJson } from '../../support/route'
 
 /**
@@ -28,30 +29,22 @@ function seedUser(id: string) {
     .run()
 }
 
-function seedPasskey(id: string, userId: string, name = id) {
-  db.insert(passkey)
-    .values({
-      id,
-      name,
-      publicKey: 'pk',
+/**
+ * A session context as the auth middleware would populate it, signed in
+ * `minutesAgo` minutes ago. Renewal moves `updatedAt` but never `createdAt`.
+ */
+function asUser(userId: string, minutesAgo = 0) {
+  return {
+    session: {
       userId,
-      credentialID: `cred-${id}`,
-      counter: 0,
-      deviceType: 'singleDevice',
-      backedUp: false,
-      createdAt: new Date(),
-    })
-    .run()
-}
-
-/** A session context as the auth middleware would populate it. */
-function asUser(userId: string) {
-  return { session: { userId } }
+      createdAt: new Date(Date.now() - minutesAgo * 60_000),
+      updatedAt: new Date(),
+    },
+  }
 }
 
 beforeEach(() => {
-  db.delete(passkey).run()
-  db.delete(user).run()
+  resetAuth()
   seedUser(OWNER)
   seedUser(OTHER)
 })
@@ -146,6 +139,45 @@ describe('DELETE /api/auth/passkeys', () => {
     expect(status).toBe(404)
     expect(body.error).toBe('Passkey not found')
     // Still there: a 404 must not be a successful cross-account delete.
+    expect(db.select().from(passkey).all()).toHaveLength(1)
+  })
+
+  test('refuses a session signed in too long ago, even if renewed', async () => {
+    seedPasskey('pk-1', OWNER)
+
+    const { status, body } = await readJson(
+      await callRoute(deletePasskey, {
+        locals: asUser(OWNER, 6),
+        body: { id: 'pk-1' },
+      }),
+    )
+
+    expect(status).toBe(403)
+    expect(body.code).toBe('SESSION_NOT_FRESH')
+    expect(body.error).toBe(
+      'Bitte melden Sie sich erneut an, um Ihre Passkeys zu ändern.',
+    )
+    expect(db.select().from(passkey).all()).toHaveLength(1)
+  })
+
+  test('refuses a session without a usable sign-in time', async () => {
+    seedPasskey('pk-1', OWNER)
+
+    for (const createdAt of [
+      undefined,
+      'kaputt',
+      new Date(Date.now() + 60_000),
+    ]) {
+      const { status, body } = await readJson(
+        await callRoute(deletePasskey, {
+          locals: { session: { userId: OWNER, createdAt } },
+          body: { id: 'pk-1' },
+        }),
+      )
+
+      expect(status).toBe(403)
+      expect(body.code).toBe('SESSION_NOT_FRESH')
+    }
     expect(db.select().from(passkey).all()).toHaveLength(1)
   })
 

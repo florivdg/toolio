@@ -3,6 +3,11 @@ import { db } from '@/db/database'
 import { passkey } from '@/db/schema/auth'
 import { eq, and } from 'drizzle-orm'
 import { json } from '@/lib/api/responses'
+import {
+  SESSION_NOT_FRESH_CODE,
+  SESSION_NOT_FRESH_MESSAGE,
+  isSessionFresh,
+} from '@/lib/auth-session'
 
 /**
  * This endpoint predates the shared success envelope and answers with bare
@@ -45,6 +50,15 @@ export const DELETE: APIRoute = async ({ locals, request }) => {
   try {
     const session = locals.session
     if (!session) return unauthorized()
+
+    // Removing a passkey needs a recent sign-in, the same rule the Better Auth
+    // passkey endpoints follow, so an old or stolen session cannot do it.
+    if (!isSessionFresh(session.createdAt)) {
+      return json(
+        { error: SESSION_NOT_FRESH_MESSAGE, code: SESSION_NOT_FRESH_CODE },
+        403,
+      )
+    }
 
     const { id } = await request.json()
     if (!id) return json({ error: 'Passkey ID is required' }, 400)

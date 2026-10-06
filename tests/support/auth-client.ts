@@ -20,7 +20,15 @@ export const authBehaviour = {
   passkeyResult: null as { error?: unknown } | null,
   passkeySignInThrows: false,
   /** Result of `passkey.addPasskey()`. */
-  addPasskeyResult: null as { error?: { message?: string } } | null,
+  addPasskeyResult: null as {
+    error?: { code?: string; message?: string }
+  } | null,
+  /** Result of `signOut()`; an object with `error` means it failed. */
+  signOutResult: { data: { success: true } } as {
+    data?: unknown
+    error?: unknown
+  },
+  signOutThrows: false,
 }
 
 /** What each call was given, in order. */
@@ -28,6 +36,7 @@ export const authCalls = {
   email: [] as unknown[],
   passkeySignIn: [] as unknown[],
   addPasskey: [] as unknown[],
+  signOut: [] as unknown[],
 }
 
 mock.module('@/lib/auth-client', () => ({
@@ -54,6 +63,13 @@ mock.module('@/lib/auth-client', () => ({
       return authBehaviour.addPasskeyResult
     },
   },
+  signOut: async (...args: unknown[]) => {
+    authCalls.signOut.push(args)
+
+    if (authBehaviour.signOutThrows) throw new Error('Netzwerk')
+
+    return authBehaviour.signOutResult
+  },
 }))
 
 /** Back to "everything succeeds" with no recorded calls. */
@@ -62,6 +78,8 @@ export function resetAuthClient() {
   authBehaviour.passkeyResult = null
   authBehaviour.passkeySignInThrows = false
   authBehaviour.addPasskeyResult = null
+  authBehaviour.signOutResult = { data: { success: true } }
+  authBehaviour.signOutThrows = false
 
   for (const calls of Object.values(authCalls)) calls.length = 0
 }

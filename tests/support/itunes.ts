@@ -49,6 +49,8 @@ export function itunesAlbum(overrides: Record<string, any> = {}) {
 
 /** A stubbed network: canned lookups plus whatever notifications were sent. */
 export interface ItunesNetworkStub {
+  /** iTunes ids the code under test looked up, in order. */
+  lookups: number[]
   /** Messages the code under test broadcast, in order. */
   notifications: string[]
   /** Restores the real fetch. Never skip this — the stub is process-global. */
@@ -67,6 +69,7 @@ export function stubItunesNetwork(
   responsesById: Record<number, Record<string, any>[]>,
 ): ItunesNetworkStub {
   const original = globalThis.fetch
+  const lookups: number[] = []
   const notifications: string[] = []
 
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -79,12 +82,15 @@ export function stubItunesNetwork(
       return Response.json({ sent: true })
     }
 
-    const results = responsesById[Number(url.searchParams.get('id'))] ?? []
+    const id = Number(url.searchParams.get('id'))
+    lookups.push(id)
+    const results = responsesById[id] ?? []
 
     return Response.json({ resultCount: results.length, results })
   }) as typeof fetch
 
   return {
+    lookups,
     notifications,
     restore: () => {
       globalThis.fetch = original

@@ -16,6 +16,23 @@ crontab /app/scripts/crontab
 # Make the cron script executable
 chmod +x /app/scripts/update-prices-cron.sh
 
+# cron runs jobs with an almost empty environment, so hand the price job its
+# settings in root-only files instead of the crontab, which anyone can list.
+CRON_ENV_DIR=/run/toolio-cron
+rm -rf "$CRON_ENV_DIR"
+(
+  umask 077
+  mkdir -p "$CRON_ENV_DIR"
+  if [ -n "${SERVER_URL:-}" ]; then
+    printf '%s' "$SERVER_URL" >"$CRON_ENV_DIR/server-url"
+  fi
+  if [ -n "${PRICE_UPDATE_CRON_SECRET:-}" ]; then
+    printf '%s' "$PRICE_UPDATE_CRON_SECRET" >"$CRON_ENV_DIR/price-update-secret"
+  else
+    echo "$(date): WARNING: PRICE_UPDATE_CRON_SECRET is not set; scheduled price updates will fail"
+  fi
+)
+
 # Start crond in the background (cronie version)
 crond -n -s -m off &
 

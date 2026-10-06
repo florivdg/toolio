@@ -1,4 +1,4 @@
-import '../support/dom' // DOM is registered in preload; kept for clarity when running this file alone
+import { captureNavigation } from '../support/dom'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
@@ -18,29 +18,21 @@ const SignIn = (await import('@/components/auth/sign-in.vue')).default
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+let navigation: ReturnType<typeof captureNavigation>
+
 /** Where the component tried to navigate, without actually navigating. */
-let redirectedTo = ''
+const redirectedTo = () => navigation.target()
 
 beforeEach(() => {
   resetAuthClient()
-  redirectedTo = ''
-
-  // happy-dom would try to load the target; capture the assignment instead.
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: {
-      search: '',
-      set href(value: string) {
-        redirectedTo = value
-      },
-      get href() {
-        return redirectedTo
-      },
-    },
+  navigation = captureNavigation({
+    search: '',
+    origin: 'http://localhost:4321',
   })
 })
 
 afterEach(() => {
+  navigation.restore()
   document.body.innerHTML = ''
 })
 
@@ -85,7 +77,7 @@ describe('sign-in form', () => {
     await submit(w)
     await settle()
 
-    expect(redirectedTo).toBe('/')
+    expect(redirectedTo()).toBe('/')
   })
 
   test('redirects to where the middleware sent the visitor from', async () => {
@@ -97,7 +89,50 @@ describe('sign-in form', () => {
     await submit(w)
     await settle()
 
-    expect(redirectedTo).toBe('/tools/wishlists')
+    expect(redirectedTo()).toBe('/tools/wishlists')
+  })
+
+  test('keeps the query and hash of a same-origin target', async () => {
+    window.location.search = `?redirect=${encodeURIComponent(
+      '/tools/wishlists?liste=1#neu',
+    )}`
+    const w = mount(SignIn)
+    await nextTick()
+
+    await fillCredentials(w)
+    await submit(w)
+    await settle()
+
+    expect(redirectedTo()).toBe('/tools/wishlists?liste=1#neu')
+  })
+
+  test('lands at home instead of an off-site redirect target', async () => {
+    window.location.search = `?redirect=${encodeURIComponent(
+      'https://evil.example/phish',
+    )}`
+    const w = mount(SignIn)
+    await nextTick()
+
+    await fillCredentials(w)
+    await submit(w)
+    await settle()
+
+    expect(redirectedTo()).toBe('/')
+  })
+
+  /** Same-origin as parsed, but the normalised path `//…` leaves the site. */
+  test('lands at home for a dot-segment target that becomes off-site', async () => {
+    window.location.search = `?redirect=${encodeURIComponent(
+      '/safe/%2e%2e//attacker.invalid/path',
+    )}`
+    const w = mount(SignIn)
+    await nextTick()
+
+    await fillCredentials(w)
+    await submit(w)
+    await settle()
+
+    expect(redirectedTo()).toBe('/')
   })
 
   test('reports wrong credentials without redirecting', async () => {
@@ -109,7 +144,7 @@ describe('sign-in form', () => {
     await settle()
 
     expect(w.text()).toContain('E-Mail oder Passwort falsch')
-    expect(redirectedTo).toBe('')
+    expect(redirectedTo()).toBe('')
   })
 
   test('reports a failed request separately from wrong credentials', async () => {
@@ -137,7 +172,62 @@ describe('sign-in with a passkey', () => {
     await settle()
 
     expect(authCalls.passkeySignIn).toHaveLength(1)
-    expect(redirectedTo).toBe('/')
+    expect(redirectedTo()).toBe('/')
+  })
+
+  test('ignores a script redirect target after a passkey sign-in', async () => {
+    window.location.search = '?redirect=javascript%3Aalert(1)'
+    const w = mount(SignIn)
+    await nextTick()
+
+    await passkeyButton(w).trigger('click')
+    await settle()
+
+    expect(redirectedTo()).toBe('/')
+  })
+
+  test('ignores a same-origin URL with a // path after a passkey sign-in', async () => {
+    window.location.search = `?redirect=${encodeURIComponent(
+      'http://localhost:4321//attacker.invalid/path',
+    )}`
+    const w = mount(SignIn)
+    await nextTick()
+
+    await passkeyButton(w).trigger('click')
+    await settle()
+
+    expect(redirectedTo()).toBe('/')
+  })
+
+  test('ignores an off-site target after an autofill passkey sign-in', async () => {
+    window.location.search = `?redirect=${encodeURIComponent(
+      '/safe/..//attacker.invalid/path',
+    )}`
+    const original = window.PublicKeyCredential
+    Object.defineProperty(window, 'PublicKeyCredential', {
+      configurable: true,
+      value: { isConditionalMediationAvailable: async () => true },
+    })
+
+    try {
+      mount(SignIn)
+      await settle()
+
+      // The autofill request is started on mount; the browser resolves it
+      // whenever the user picks a passkey.
+      const [, callbacks] = authCalls.passkeySignIn[0] as [
+        unknown,
+        { onSuccess: () => void },
+      ]
+      callbacks.onSuccess()
+
+      expect(redirectedTo()).toBe('/')
+    } finally {
+      Object.defineProperty(window, 'PublicKeyCredential', {
+        configurable: true,
+        value: original,
+      })
+    }
   })
 
   test('reports a rejected passkey without redirecting', async () => {
@@ -148,7 +238,7 @@ describe('sign-in with a passkey', () => {
     await settle()
 
     expect(w.text()).toContain('Passkey-Anmeldung fehlgeschlagen')
-    expect(redirectedTo).toBe('')
+    expect(redirectedTo()).toBe('')
   })
 
   test('reports a thrown passkey error', async () => {

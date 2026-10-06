@@ -1,4 +1,4 @@
-import '../support/dom' // DOM is registered in preload; kept for clarity when running this file alone
+import { captureNavigation } from '../support/dom'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { mount } from '@vue/test-utils'
 import { formatPasskeyDate, getDeviceTypeLabel } from '@/lib/passkeys'
@@ -229,5 +229,134 @@ describe('passkey manager', () => {
     await settle()
 
     expect(w.text()).toContain('Fehler beim Löschen des Passkeys')
+    expect(reauthButton(w)).toBeUndefined()
+  })
+})
+
+function reauthButton(w: ReturnType<typeof mount>) {
+  return w.findAll('button').find((b) => b.text().includes('Erneut anmelden'))
+}
+
+/**
+ * Changing passkeys needs a recent sign-in. The server answers a stale session
+ * with `SESSION_NOT_FRESH`, and the only way back to a fresh one is signing out
+ * first: the middleware sends signed-in visitors away from the sign-in page.
+ */
+describe('passkey manager with a stale session', () => {
+  const STALE_MESSAGE =
+    'Bitte melden Sie sich erneut an, um Ihre Passkeys zu ändern.'
+
+  let navigation: ReturnType<typeof captureNavigation>
+  const navigatedTo = () => navigation.target()
+
+  beforeEach(() => {
+    navigation = captureNavigation()
+  })
+
+  afterEach(() => {
+    navigation.restore()
+  })
+
+  /** Answers the list as usual and a delete with the stale-session 403. */
+  function stubStaleDelete() {
+    const list = globalThis.fetch
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      if (init?.method !== 'DELETE') return list(input, init)
+
+      requests.push({ url: input.toString(), method: 'DELETE', body: null })
+
+      return Response.json(
+        { error: STALE_MESSAGE, code: 'SESSION_NOT_FRESH' },
+        { status: 403 },
+      )
+    }) as unknown as typeof fetch
+  }
+
+  async function addWithStaleSession() {
+    const w = await mountManager([])
+    authBehaviour.addPasskeyResult = {
+      error: { code: 'SESSION_NOT_FRESH', message: 'Session is not fresh' },
+    }
+
+    await w.find('input').setValue('Mein MacBook')
+    await w.findAll('button')[0]!.trigger('click')
+    await settle()
+
+    return w
+  }
+
+  test('asks for a new sign-in instead of showing the library message', async () => {
+    const w = await addWithStaleSession()
+
+    expect(w.text()).toContain(STALE_MESSAGE)
+    expect(w.text()).not.toContain('Session is not fresh')
+    expect(reauthButton(w)).toBeDefined()
+    // The name stays, and the add button is usable again.
+    expect((w.find('input').element as HTMLInputElement).value).toBe(
+      'Mein MacBook',
+    )
+    expect(w.text()).not.toContain('Wird hinzugefügt...')
+  })
+
+  test('asks for a new sign-in when a delete is refused', async () => {
+    const w = await mountManager([aPasskey()])
+    stubStaleDelete()
+
+    w.findComponent({ name: 'PasskeyTable' }).vm.$emit('delete', 'pk-1')
+    await settle()
+
+    expect(w.text()).toContain(STALE_MESSAGE)
+    expect(w.text()).not.toContain('Fehler beim Löschen des Passkeys')
+    expect(reauthButton(w)).toBeDefined()
+    // Still listed: the delete did not happen.
+    expect(w.text()).toContain('MacBook')
+  })
+
+  test('signs out, then goes to sign-in and back to the account page', async () => {
+    const w = await addWithStaleSession()
+
+    await reauthButton(w)!.trigger('click')
+    await settle()
+
+    expect(authCalls.signOut).toHaveLength(1)
+    expect(navigatedTo()).toBe('/sign-in?redirect=%2Faccount')
+  })
+
+  test('stays put and says so when signing out is rejected', async () => {
+    authBehaviour.signOutResult = { error: { status: 500 } }
+    const w = await addWithStaleSession()
+
+    await reauthButton(w)!.trigger('click')
+    await settle()
+
+    expect(navigatedTo()).toBe('')
+    expect(w.text()).toContain('Abmelden fehlgeschlagen')
+    // Still offered, so the user can try again.
+    expect(reauthButton(w)!.attributes('disabled')).toBeUndefined()
+  })
+
+  test('stays put and says so when signing out throws', async () => {
+    authBehaviour.signOutThrows = true
+    const w = await addWithStaleSession()
+
+    await reauthButton(w)!.trigger('click')
+    await settle()
+
+    expect(navigatedTo()).toBe('')
+    expect(w.text()).toContain('Abmelden fehlgeschlagen')
+  })
+
+  test('drops the prompt once a later action fails for another reason', async () => {
+    const w = await addWithStaleSession()
+    authBehaviour.addPasskeyResult = { error: { message: 'Abgebrochen' } }
+
+    await w.findAll('button')[0]!.trigger('click')
+    await settle()
+
+    expect(w.text()).toContain('Abgebrochen')
+    expect(reauthButton(w)).toBeUndefined()
   })
 })

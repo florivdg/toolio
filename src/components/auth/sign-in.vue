@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, onMounted, ref } from 'vue'
 import { signIn } from '@/lib/auth-client'
+import { safeRedirectTarget } from '@/lib/auth-access'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -18,7 +19,7 @@ const form = reactive({
   password: '',
 })
 
-// Store the redirect URL
+// Where every sign-in path lands; only ever a validated same-origin path.
 const redirectUrl = ref('/')
 
 // Add loading states
@@ -32,10 +33,10 @@ const busy = computed(() => isLoading.value || isPasskeyLoading.value)
 // Extract redirect URL from query parameters on component mount
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search)
-  const redirect = urlParams.get('redirect')
-  if (redirect) {
-    redirectUrl.value = redirect
-  }
+  redirectUrl.value = safeRedirectTarget(
+    urlParams.get('redirect'),
+    window.location.origin,
+  )
 
   // Preload passkeys for conditional UI (autofill)
   if (

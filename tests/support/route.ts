@@ -11,13 +11,22 @@ export function callRoute(
     body?: unknown
     url?: string
     locals?: Record<string, unknown>
+    method?: string
+    headers?: Record<string, string>
   } = {},
 ): Promise<Response> {
-  const { params = {}, body, url = 'http://localhost/', locals = {} } = options
+  const {
+    params = {},
+    body,
+    url = 'http://localhost/',
+    locals = {},
+    method = 'POST',
+    headers = {},
+  } = options
 
   const request = new Request(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method,
+    headers: { 'Content-Type': 'application/json', ...headers },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
 
