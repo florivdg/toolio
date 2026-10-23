@@ -34,6 +34,16 @@ describe('createUser', () => {
     expect(accountFor(userId)?.providerId).toBe('credential')
   })
 
+  test('keys the credential account on the user id', async () => {
+    // Better Auth's email sign-in ignores credential accounts keyed otherwise.
+    const { userId } = await createUser({
+      email: 'flori@example.com',
+      password: 'geheim',
+    })
+
+    expect(accountFor(userId)?.accountId).toBe(userId)
+  })
+
   test('names the user after the local part when no name is given', async () => {
     const { userId } = await createUser({
       email: 'flori@example.com',
