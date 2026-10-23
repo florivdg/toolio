@@ -26,7 +26,9 @@ const tags = doc.data.tags ?? []
     </CardHeader>
     <CardContent>
       <div class="flex flex-wrap gap-2">
-        {tags.map((tag) => <Badge variant="outline">{tag}</Badge>)}
+        {tags.map((tag) => (
+          <Badge variant="outline">{tag}</Badge>
+        ))}
       </div>
       <div class="mt-4">
         <span class="text-primary inline-flex items-center text-sm font-medium">

@@ -29,7 +29,9 @@ const userSession = Astro.locals.session
       </CardHeader>
       <CardContent>
         <div class="space-y-2">
-          <p><strong>Nutzer-ID:</strong> {userSession!.userId}</p>
+          <p>
+            <strong>Nutzer-ID:</strong> {userSession!.userId}
+          </p>
           <p>
             <strong>Erstellt am:</strong>
             {new Date(userSession!.createdAt).toLocaleString('de-DE')}
