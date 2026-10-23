@@ -17,7 +17,6 @@ export async function createUser({
   name?: string
 }): Promise<{ userId: string }> {
   const userId = crypto.randomUUID()
-  const accountId = crypto.randomUUID()
   const now = new Date()
 
   await db.insert(user).values({
@@ -32,8 +31,9 @@ export async function createUser({
   })
 
   await db.insert(account).values({
-    id: accountId,
-    accountId,
+    id: crypto.randomUUID(),
+    // Better Auth only accepts a credential account keyed on the user's own id.
+    accountId: userId,
     providerId: 'credential',
     userId,
     accessToken: null,
